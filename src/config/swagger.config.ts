@@ -5,9 +5,10 @@ export default (app: NestExpressApplication) => {
   // Configurar Swagger solo si no estamos en producción
   if (process.env.NODE_ENV !== 'production') {
     const config = new DocumentBuilder()
-      .setTitle('Microservicio de mi padre marido')
+      .setTitle('Microservicio de Ponte100')
       .setDescription(
-        'Este microservicio que se encarga hacerme feliz.',
+        `Este microservicio se encarga de administrar los endpoint's necesarios
+         para el funcionamiento del simulador Ponte100.`,
       )
       .setVersion('1.0')
       .build();
