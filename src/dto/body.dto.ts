@@ -14,3 +14,9 @@ export class SessionDto {
 export class SessionTokenDto {
   sessionToken: string;
 }
+
+export class ValidatePersonDto {
+  email: string;
+  cip: string;
+  dni: string;
+}
