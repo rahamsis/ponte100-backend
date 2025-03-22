@@ -13,6 +13,11 @@ export default (app: NestExpressApplication) => {
       .setVersion('1.0')
       .build();
     const document = SwaggerModule.createDocument(app, config);
-    SwaggerModule.setup('docs', app, document);
+    SwaggerModule.setup('docs', app, document,  {
+      swaggerOptions: {
+        // Aseguramos que Swagger tome el prefijo global para las rutas
+        url: `/backendApi/docs`
+      }
+    });
   }
 };
