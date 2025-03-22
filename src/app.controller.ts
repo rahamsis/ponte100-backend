@@ -28,6 +28,20 @@ export class AppController {
     }
   }
 
+  @Post('backendApi/create-account')
+  async createAccount(
+    @Res() res: Response,
+    @Body() body: BodyDto,
+  ) {
+    try {
+      const data = await this.appService.createAccount(body)
+    
+      return res.status(HttpStatus.OK).json(data);
+    } catch(error) {
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: error.message });
+    }
+  }
+
   @Post('/backendApi/create-session')
   async createSession(
     @Res() res: Response,

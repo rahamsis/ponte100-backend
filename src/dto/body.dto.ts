@@ -1,6 +1,7 @@
 export class BodyDto {
   email: string;
   password: string;
+  username: string;
 }
 
 export class SessionDto {

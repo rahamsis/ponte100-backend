@@ -33,6 +33,31 @@ export class AppService {
     return user[0];
   }
 
+  async createAccount(body: BodyDto): Promise<{ message: string }> {
+    const email = body.email.toLowerCase().trim();
+    const password = body.password.trim();
+
+    const user = await this.databaseService.executeQuery(`SELECT userId FROM users WHERE email = ?`, [
+      email,
+    ]);
+
+    if (user.length > 0) {
+      return { message: "El email ya está en uso." };
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10)
+
+    await this.databaseService.executeQuery(`INSERT INTO users (userId, name, email, password)
+        VALUES (?,?,?,?)`, [
+          uuidv4(),
+          body.username,
+          email,
+          hashedPassword
+    ]);
+
+    return {message: "Cuenta creada exitosamente"}
+  }
+
   async createSession(body: SessionDto): Promise<{ sessionId: string }> {
     await this.databaseService.executeQuery(`DELETE FROM sessions WHERE userId = ?`, [body.userId]);
 
@@ -290,7 +315,7 @@ export class AppService {
     const existingRecords = await this.databaseService.executeQuery(
       `SELECT idPregunta FROM preguntasfallidas WHERE idPregunta IN (${placeholders})`,
       body.failedQuestions);
-  
+
     // Extraer solo las que no existen
     const existingIds = new Set(existingRecords.map((q: { idPregunta: string }) => q.idPregunta));
     const newQuestions = body.failedQuestions.filter(id => !existingIds.has(id));
@@ -343,9 +368,9 @@ export class AppService {
     // Validar que el resultado tenga datos y extraer la cantidad
     if (Array.isArray(quantity) && quantity.length > 0 && quantity[0]?.quantity !== undefined) {
       return quantity[0].quantity;
-  }
+    }
 
-  console.warn(`Tabla "${tableName}" no encontrada o sin registros.`);
-  return null;
+    console.warn(`Tabla "${tableName}" no encontrada o sin registros.`);
+    return null;
   }
 }
