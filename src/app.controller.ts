@@ -14,7 +14,7 @@ export class AppController {
     return this.appService.getHello();
   }
 
-  @Post('/api/login')
+  @Post('/backendApi/login')
   async getLogin(
     @Res() res: Response,
     @Body() body: BodyDto,
@@ -28,7 +28,7 @@ export class AppController {
     }
   }
 
-  @Post('/api/create-session')
+  @Post('/backendApi/create-session')
   async createSession(
     @Res() res: Response,
     @Body() body: SessionDto,
@@ -42,7 +42,7 @@ export class AppController {
     }
   }
 
-  @Post('/api/active-session')
+  @Post('/backendApi/active-session')
   async activeSession(
     @Res() res: Response,
     @Body() body: SessionTokenDto,
@@ -56,7 +56,7 @@ export class AppController {
     }
   }
 
-  @Get('/api/temas')
+  @Get('/backendApi/temas')
   async getTemas(
     @Res() res: Response, 
   ) {
@@ -69,7 +69,7 @@ export class AppController {
     }
   }
 
-  @Post('/api/questions-by-idtema')
+  @Post('/backendApi/questions-by-idtema')
   async getQuestionsByIdTema(
     @Res() res: Response,
     @Body() body: { idTema: string },
@@ -83,7 +83,7 @@ export class AppController {
     }
   }
 
-  @Post('/api/questions-random-with-limit')
+  @Post('/backendApi/questions-random-with-limit')
   async getQuestionsRamdonWithLimit(
     @Res() res: Response,
     @Body() body: { limit: number },
@@ -96,7 +96,7 @@ export class AppController {
     }
   }
 
-  @Post('/api/questions-siecopol')
+  @Post('/backendApi/questions-siecopol')
   async getQuestionsSiecopol(
     @Res() res: Response,
     @Body() body: { limit: number },
@@ -109,7 +109,7 @@ export class AppController {
     }
   }
 
-  @Post('/api/validate-person-by-cipdni')
+  @Post('/backendApi/validate-person-by-cipdni')
   async validatePersonByCipDni(
     @Res() res: Response,
     @Body() body: ValidatePersonDto,
@@ -122,7 +122,7 @@ export class AppController {
     }
   }
 
-  @Get('/api/table-exams')
+  @Get('/backendApi/table-exams')
   async getTableExams(
     @Res() res: Response,
   ) {
@@ -134,7 +134,7 @@ export class AppController {
     }
   }
 
-  @Post('/api/questions-siecopol-with-offset')
+  @Post('/backendApi/questions-siecopol-with-offset')
   async getQuestionsSiecopolWithOffset(
     @Res() res: Response,
     @Body() body: { index: number},
@@ -147,7 +147,7 @@ export class AppController {
     }
   }
 
-  @Post('/api/save-incorrect-questions')
+  @Post('/backendApi/save-incorrect-questions')
   async saveIncorrectQuestions(
     @Res() res: Response,
     @Body() body: { failedQuestions: string[] },
@@ -160,7 +160,7 @@ export class AppController {
     }
   }
 
-  @Post('/api/incorrect-questions')
+  @Post('/backendApi/incorrect-questions')
   async getIncorrectQuestions(
     @Res() res: Response,
     @Body() body: { quantity: number },
@@ -173,7 +173,7 @@ export class AppController {
     }
   }
 
-  @Post('/api/quantity-questions')
+  @Post('/backendApi/quantity-questions')
   async getQuantityQuestions(
     @Res() res: Response,
     @Body() body: { tableName: string },
