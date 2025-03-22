@@ -9,9 +9,6 @@ async function bootstrap() {
   // Crear la aplicación
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
-  // Configurar el prefijo global para la API
-  app.setGlobalPrefix('backendApi'); // Aquí defines '/backendApi' como prefijo global
-
   // Llamar a la función para configurar CORS
   configureCors(app);
 
