@@ -276,7 +276,7 @@ export class AppService {
     // Ejecutar todas las consultas en paralelo
     const queries = temas.map(({ idTema, limit, offset }) =>
       this.databaseService.executeQuery(`SELECT idPregunta FROM preguntas WHERE idTema = ? 
-              ORDER BY CAST(idPregunta AS UNSIGNED) LIMIT ? OFFSET ?`, [idTema, limit, offset])
+              ORDER BY CAST(idPregunta AS UNSIGNED) LIMIT ? OFFSET ?`, [idTema, limit.toString(), offset.toString()])
     );
 
     // Esperar a que todas las consultas terminen
@@ -286,7 +286,8 @@ export class AppService {
     const questionIds = results.flatMap((rows) =>
       rows.map((q: { idPregunta: string }) => q.idPregunta));
 
-    const questionIdsString = questionIds.map(id => `'${id}'`).join(", ");
+    // Crear placeholders seguros para evitar inyección SQL
+    const placeholders = questionIds.map(() => "?").join(", ");
 
     // Traer los detalles de esas preguntas y sus respuestas
     const questions = await this.databaseService.executeQuery(`
@@ -299,9 +300,9 @@ export class AppService {
       FROM preguntas p 
       INNER JOIN alternativas a ON a.idPregunta = p.idPregunta
       INNER JOIN temas t ON t.idTema = p.idTema
-      WHERE p.idPregunta IN (${questionIdsString})
+      WHERE p.idPregunta IN (${placeholders})
       GROUP BY p.idPregunta
-      ORDER BY p.idTema`);
+      ORDER BY p.idTema`, questionIds);
 
     return questions || null;
   }
