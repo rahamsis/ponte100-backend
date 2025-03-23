@@ -23,5 +23,5 @@ export class ValidatePersonDto {
 }
 
 export class PruebaDto {
-  limite: number;
+  limit: number;
 }
