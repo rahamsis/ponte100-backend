@@ -138,8 +138,11 @@ export class AppService {
 
     } else {
       console.log("body", body)
+      if (body.limit == null || isNaN(body.limit)) {
+        console.log("enetro aquiiiiiiiii")
+      }
       // Obtener preguntas aleatorias de manera eficiente, según la cantidad solicitada
-      const randomQuestions = await this.databaseService.executeQuery(`SELECT idPregunta FROM preguntas ORDER BY RAND() LIMIT ?`, [body.limit]);
+      const randomQuestions = await this.databaseService.executeQuery(`SELECT idPregunta FROM preguntas ORDER BY RAND() LIMIT ?`, [body.limit.valueOf()]);
       console.log("randomQuestions", randomQuestions)
       questionIds = randomQuestions.map((q: { idPregunta: string }) => q.idPregunta);
     }
