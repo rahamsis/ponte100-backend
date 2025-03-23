@@ -49,7 +49,6 @@ export class AppController {
   ) {
     try {
       const data = await this.appService.createSession(body);
-
       return res.status(HttpStatus.OK).json(data);
     } catch (error) {
       res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: error.message });
