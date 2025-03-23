@@ -126,7 +126,7 @@ export class AppService {
       // Ejecutar todas las consultas en paralelo
       const queries = temas.map(({ idTema, limit }) =>
         this.databaseService.executeQuery(`SELECT idPregunta FROM preguntas WHERE idTema = ? 
-              ORDER BY RAND() LIMIT ?`, [idTema, limit])
+              ORDER BY RAND() LIMIT ?`, [idTema, limit.toString()])
       );
 
       // Esperar a que todas las consultas terminen
