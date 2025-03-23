@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { DatabaseService } from './database/database.service';
-import { BodyDto, SessionDto, SessionTokenDto, ValidatePersonDto } from './dto/body.dto';
+import { BodyDto, PruebaDto, SessionDto, SessionTokenDto, ValidatePersonDto } from './dto/body.dto';
 import { v4 as uuidv4 } from 'uuid'
 import * as bcrypt from 'bcrypt';
 
@@ -62,20 +62,21 @@ export class AppService {
     await this.databaseService.executeQuery(`DELETE FROM sessions WHERE userId = ?`, [body.userId]);
 
     const sessionId = uuidv4();
+    const formattedExpires = new Date(body.sessionExpires).toISOString().slice(0, 19).replace("T", " ");
 
     await this.databaseService.executeQuery(`INSERT INTO sessions (sessionId, userId, userDevice, userIp, sessionToken, sessionExpires, createdAt) 
             VALUES (?, ?, ?, ?, ?, ?, NOW())`,
-      [sessionId, body.userId, body.userDevice, body.userIp, body.sessionToken, body.sessionExpires]);
+      [sessionId, body.userId, body.userDevice, body.userIp, body.sessionToken, formattedExpires]);
 
-    return { sessionId };
+    return { sessionId: sessionId };
   }
 
-  async activeSession(body: SessionTokenDto): Promise<{ sessionId }> {
+  async activeSession(body: SessionTokenDto): Promise<any> {
     const session = await this.databaseService.executeQuery(`SELECT * FROM sessions 
             WHERE sessionToken = ? AND sessionExpires > NOW()
             ORDER BY createdAt DESC LIMIT 1`, [body.sessionToken]);
 
-    return session[0] || null;
+    return session || null;
   }
 
   async getTemas(): Promise<any> {
@@ -98,28 +99,28 @@ export class AppService {
     return questions || null;
   }
 
-  async getQuestionsRamdonWithLimit(limite: number): Promise<any> {
-    let questionIds;
-    if (limite === 100 || limite === 50) {
+  async getQuestionsRamdonWithLimit(body: PruebaDto): Promise<any> {
+    let questionIds:string[]=[];
+    if (body.limite === 100 || body.limite === 50) {
       const temas = [
-        { idTema: 'T00001', limit: (limite === 100) ? 8 : 4 },
-        { idTema: 'T00002', limit: (limite === 100) ? 4 : 2 },
-        { idTema: 'T00003', limit: (limite === 100) ? 8 : 4 },
-        { idTema: 'T00004', limit: (limite === 100) ? 8 : 4 },
-        { idTema: 'T00005', limit: (limite === 100) ? 6 : 3 },
-        { idTema: 'T00006', limit: (limite === 100) ? 3 : 2 },
-        { idTema: 'T00007', limit: (limite === 100) ? 8 : 4 },
-        { idTema: 'T00008', limit: (limite === 100) ? 3 : 2 },
-        { idTema: 'T00009', limit: (limite === 100) ? 4 : 2 },
-        { idTema: 'T00010', limit: (limite === 100) ? 4 : 2 },
-        { idTema: 'T00011', limit: (limite === 100) ? 3 : 2 },
-        { idTema: 'T00012', limit: (limite === 100) ? 3 : 2 },
-        { idTema: 'T00013', limit: (limite === 100) ? 12 : 5 },
-        { idTema: 'T00014', limit: (limite === 100) ? 14 : 6 },
-        { idTema: 'T00015', limit: (limite === 100) ? 2 : 1 },
-        { idTema: 'T00016', limit: (limite === 100) ? 3 : 2 },
-        { idTema: 'T00017', limit: (limite === 100) ? 5 : 2 },
-        { idTema: 'T00018', limit: (limite === 100) ? 2 : 1 },
+        { idTema: 'T00001', limit: (body.limite === 100) ? 8 : 4 },
+        { idTema: 'T00002', limit: (body.limite === 100) ? 4 : 2 },
+        { idTema: 'T00003', limit: (body.limite === 100) ? 8 : 4 },
+        { idTema: 'T00004', limit: (body.limite === 100) ? 8 : 4 },
+        { idTema: 'T00005', limit: (body.limite === 100) ? 6 : 3 },
+        { idTema: 'T00006', limit: (body.limite === 100) ? 3 : 2 },
+        { idTema: 'T00007', limit: (body.limite === 100) ? 8 : 4 },
+        { idTema: 'T00008', limit: (body.limite === 100) ? 3 : 2 },
+        { idTema: 'T00009', limit: (body.limite === 100) ? 4 : 2 },
+        { idTema: 'T00010', limit: (body.limite === 100) ? 4 : 2 },
+        { idTema: 'T00011', limit: (body.limite === 100) ? 3 : 2 },
+        { idTema: 'T00012', limit: (body.limite === 100) ? 3 : 2 },
+        { idTema: 'T00013', limit: (body.limite === 100) ? 12 : 5 },
+        { idTema: 'T00014', limit: (body.limite === 100) ? 14 : 6 },
+        { idTema: 'T00015', limit: (body.limite === 100) ? 2 : 1 },
+        { idTema: 'T00016', limit: (body.limite === 100) ? 3 : 2 },
+        { idTema: 'T00017', limit: (body.limite === 100) ? 5 : 2 },
+        { idTema: 'T00018', limit: (body.limite === 100) ? 2 : 1 },
       ];
 
       // Ejecutar todas las consultas en paralelo
@@ -136,15 +137,15 @@ export class AppService {
         rows.map((q: { idPregunta: string }) => q.idPregunta));
 
     } else {
+      console.log("body", body)
       // Obtener preguntas aleatorias de manera eficiente, según la cantidad solicitada
-      const randomQuestions = await this.databaseService.executeQuery(`
-      SELECT idPregunta FROM preguntas ORDER BY RAND() LIMIT ?;
-      `, [limite]);
-
+      const randomQuestions = await this.databaseService.executeQuery(`SELECT idPregunta FROM preguntas ORDER BY RAND() LIMIT ?`, [body.limite]);
+      console.log("randomQuestions", randomQuestions)
       questionIds = randomQuestions.map((q: { idPregunta: string }) => q.idPregunta);
     }
 
-    const questionIdsString = questionIds.map(id => `'${id}'`).join(", ");
+    // Crear placeholders seguros para evitar inyección SQL
+    const placeholders = questionIds.map(() => "?").join(", ");
 
     // Traer los detalles de esas preguntas y sus respuestas
     const questions = await this.databaseService.executeQuery(`
@@ -157,9 +158,9 @@ export class AppService {
       FROM preguntas p 
       INNER JOIN alternativas a ON a.idPregunta = p.idPregunta
       INNER JOIN temas t ON t.idTema = p.idTema
-      WHERE p.idPregunta IN (${questionIdsString})
+      WHERE p.idPregunta IN (${placeholders})
       GROUP BY p.idPregunta
-      ORDER BY p.idTema`);
+      ORDER BY p.idTema`, questionIds);
 
     return questions || null;
   }
