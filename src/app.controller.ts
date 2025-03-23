@@ -1,7 +1,7 @@
 import { Body, Controller, Get, HttpStatus, Post, Res } from '@nestjs/common';
 import { AppService } from './app.service';
 import { ApiTags } from '@nestjs/swagger';
-import { BodyDto, PruebaDto, SessionDto, SessionTokenDto, ValidatePersonDto } from './dto/body.dto';
+import { BodyDto, SessionDto, SessionTokenDto, ValidatePersonDto } from './dto/body.dto';
 import { Response } from 'express';
 
 @ApiTags('Root')
@@ -99,10 +99,10 @@ export class AppController {
   @Post('/backendApi/questions-random-with-limit')
   async getQuestionsRamdonWithLimit(
     @Res() res: Response,
-    @Body() body: PruebaDto,
+    @Body() body: {limit: number},
   ) {
     try {
-      const data = await this.appService.getQuestionsRamdonWithLimit(body);
+      const data = await this.appService.getQuestionsRamdonWithLimit(body.limit);
       return res.status(HttpStatus.OK).json(data);
     } catch (error) {
       res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: error.message });

@@ -21,7 +21,3 @@ export class ValidatePersonDto {
   cip: string;
   dni: string;
 }
-
-export class PruebaDto {
-  limit: number;
-}
