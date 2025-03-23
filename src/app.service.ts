@@ -101,26 +101,26 @@ export class AppService {
 
   async getQuestionsRamdonWithLimit(body: PruebaDto): Promise<any> {
     let questionIds:string[]=[];
-    if (body.limite === 100 || body.limite === 50) {
+    if (body.limit === 100 || body.limit === 50) {
       const temas = [
-        { idTema: 'T00001', limit: (body.limite === 100) ? 8 : 4 },
-        { idTema: 'T00002', limit: (body.limite === 100) ? 4 : 2 },
-        { idTema: 'T00003', limit: (body.limite === 100) ? 8 : 4 },
-        { idTema: 'T00004', limit: (body.limite === 100) ? 8 : 4 },
-        { idTema: 'T00005', limit: (body.limite === 100) ? 6 : 3 },
-        { idTema: 'T00006', limit: (body.limite === 100) ? 3 : 2 },
-        { idTema: 'T00007', limit: (body.limite === 100) ? 8 : 4 },
-        { idTema: 'T00008', limit: (body.limite === 100) ? 3 : 2 },
-        { idTema: 'T00009', limit: (body.limite === 100) ? 4 : 2 },
-        { idTema: 'T00010', limit: (body.limite === 100) ? 4 : 2 },
-        { idTema: 'T00011', limit: (body.limite === 100) ? 3 : 2 },
-        { idTema: 'T00012', limit: (body.limite === 100) ? 3 : 2 },
-        { idTema: 'T00013', limit: (body.limite === 100) ? 12 : 5 },
-        { idTema: 'T00014', limit: (body.limite === 100) ? 14 : 6 },
-        { idTema: 'T00015', limit: (body.limite === 100) ? 2 : 1 },
-        { idTema: 'T00016', limit: (body.limite === 100) ? 3 : 2 },
-        { idTema: 'T00017', limit: (body.limite === 100) ? 5 : 2 },
-        { idTema: 'T00018', limit: (body.limite === 100) ? 2 : 1 },
+        { idTema: 'T00001', limit: (body.limit === 100) ? 8 : 4 },
+        { idTema: 'T00002', limit: (body.limit === 100) ? 4 : 2 },
+        { idTema: 'T00003', limit: (body.limit === 100) ? 8 : 4 },
+        { idTema: 'T00004', limit: (body.limit === 100) ? 8 : 4 },
+        { idTema: 'T00005', limit: (body.limit === 100) ? 6 : 3 },
+        { idTema: 'T00006', limit: (body.limit === 100) ? 3 : 2 },
+        { idTema: 'T00007', limit: (body.limit === 100) ? 8 : 4 },
+        { idTema: 'T00008', limit: (body.limit === 100) ? 3 : 2 },
+        { idTema: 'T00009', limit: (body.limit === 100) ? 4 : 2 },
+        { idTema: 'T00010', limit: (body.limit === 100) ? 4 : 2 },
+        { idTema: 'T00011', limit: (body.limit === 100) ? 3 : 2 },
+        { idTema: 'T00012', limit: (body.limit === 100) ? 3 : 2 },
+        { idTema: 'T00013', limit: (body.limit === 100) ? 12 : 5 },
+        { idTema: 'T00014', limit: (body.limit === 100) ? 14 : 6 },
+        { idTema: 'T00015', limit: (body.limit === 100) ? 2 : 1 },
+        { idTema: 'T00016', limit: (body.limit === 100) ? 3 : 2 },
+        { idTema: 'T00017', limit: (body.limit === 100) ? 5 : 2 },
+        { idTema: 'T00018', limit: (body.limit === 100) ? 2 : 1 },
       ];
 
       // Ejecutar todas las consultas en paralelo
@@ -139,7 +139,7 @@ export class AppService {
     } else {
       console.log("body", body)
       // Obtener preguntas aleatorias de manera eficiente, según la cantidad solicitada
-      const randomQuestions = await this.databaseService.executeQuery(`SELECT idPregunta FROM preguntas ORDER BY RAND() LIMIT ?`, [body.limite]);
+      const randomQuestions = await this.databaseService.executeQuery(`SELECT idPregunta FROM preguntas ORDER BY RAND() LIMIT ?`, [body.limit]);
       console.log("randomQuestions", randomQuestions)
       questionIds = randomQuestions.map((q: { idPregunta: string }) => q.idPregunta);
     }
