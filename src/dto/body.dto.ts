@@ -21,3 +21,19 @@ export class ValidatePersonDto {
   cip: string;
   dni: string;
 }
+
+export class QuantityQuestionsDto {
+  userId: string;
+  tableName: string;
+}
+
+export class IncorrectQuestionsDto {
+  userId: string
+  quantity: number
+}
+
+export class CrudQuestionsDto {
+  userId: string;
+  correctQuestionsIds: string[];
+  incorrectQuestionIds: string[];
+}

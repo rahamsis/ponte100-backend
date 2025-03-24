@@ -1,7 +1,7 @@
 import { Body, Controller, Get, HttpStatus, Post, Res } from '@nestjs/common';
 import { AppService } from './app.service';
 import { ApiTags } from '@nestjs/swagger';
-import { BodyDto, SessionDto, SessionTokenDto, ValidatePersonDto } from './dto/body.dto';
+import { BodyDto, CrudQuestionsDto, IncorrectQuestionsDto, QuantityQuestionsDto, SessionDto, SessionTokenDto, ValidatePersonDto } from './dto/body.dto';
 import { Response } from 'express';
 
 @ApiTags('Root')
@@ -163,7 +163,7 @@ export class AppController {
   @Post('/backendApi/save-incorrect-questions')
   async saveIncorrectQuestions(
     @Res() res: Response,
-    @Body() body: { failedQuestions: string[] },
+    @Body() body: CrudQuestionsDto,
   ) {
     try {
       const data = await this.appService.saveIncorrectQuestions(body);
@@ -176,10 +176,10 @@ export class AppController {
   @Post('/backendApi/incorrect-questions')
   async getIncorrectQuestions(
     @Res() res: Response,
-    @Body() body: { quantity: number },
+    @Body() body: IncorrectQuestionsDto,
   ) {
     try {
-      const data = await this.appService.getIncorrectQuestions(body.quantity);
+      const data = await this.appService.getIncorrectQuestions(body);
       return res.status(HttpStatus.OK).json(data);
     } catch (error) {
       res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: error.message });
@@ -189,10 +189,23 @@ export class AppController {
   @Post('/backendApi/quantity-questions')
   async getQuantityQuestions(
     @Res() res: Response,
-    @Body() body: { tableName: string },
+    @Body() body: QuantityQuestionsDto,
   ) {
     try {
-      const data = await this.appService.getQuantityQuestions(body.tableName);
+      const data = await this.appService.getQuantityQuestions(body);
+      return res.status(HttpStatus.OK).json(data);
+    } catch (error) {
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: error.message });
+    }
+  }
+
+  @Post('/backendApi/update-incorrect-questions')
+  async updateIncorrectQuestions(
+    @Res() res: Response,
+    @Body() body: CrudQuestionsDto,
+  ) {
+    try {
+      const data = await this.appService.updateIncorrectQuestions(body);
       return res.status(HttpStatus.OK).json(data);
     } catch (error) {
       res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: error.message });

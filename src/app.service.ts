@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { DatabaseService } from './database/database.service';
-import { BodyDto, SessionDto, SessionTokenDto, ValidatePersonDto } from './dto/body.dto';
+import { BodyDto, CrudQuestionsDto, IncorrectQuestionsDto, QuantityQuestionsDto, SessionDto, SessionTokenDto, ValidatePersonDto } from './dto/body.dto';
 import { v4 as uuidv4 } from 'uuid'
 import * as bcrypt from 'bcrypt';
 
@@ -49,13 +49,13 @@ export class AppService {
 
     await this.databaseService.executeQuery(`INSERT INTO users (userId, name, email, password)
         VALUES (?,?,?,?)`, [
-          uuidv4(),
-          body.username,
-          email,
-          hashedPassword
+      uuidv4(),
+      body.username,
+      email,
+      hashedPassword
     ]);
 
-    return {message: "Cuenta creada exitosamente"}
+    return { message: "Cuenta creada exitosamente" }
   }
 
   async createSession(body: SessionDto): Promise<{ sessionId: string }> {
@@ -100,7 +100,7 @@ export class AppService {
   }
 
   async getQuestionsRamdonWithLimit(limite: number): Promise<any> {
-    let questionIds:string[]=[];
+    let questionIds: string[] = [];
     if (limite === 100 || limite === 50) {
       const temas = [
         { idTema: 'T00001', limit: (limite === 100) ? 8 : 4 },
@@ -139,7 +139,6 @@ export class AppService {
     } else {
       // Obtener preguntas aleatorias de manera eficiente, según la cantidad solicitada
       const randomQuestions = await this.databaseService.executeQuery(`SELECT idPregunta FROM preguntas ORDER BY RAND() LIMIT ?`, [limite.toString()]);
-      console.log("randomQuestions", randomQuestions)
       questionIds = randomQuestions.map((q: { idPregunta: string }) => q.idPregunta);
     }
 
@@ -307,41 +306,42 @@ export class AppService {
     return questions || null;
   }
 
-  async saveIncorrectQuestions(body: { failedQuestions: string[] }): Promise<any> {
-    if (body.failedQuestions.length === 0) {
+  async saveIncorrectQuestions(body: CrudQuestionsDto): Promise<any> {
+    if (body.correctQuestionsIds.length === 0) {
       return { message: 'No questions to save' };
     }
 
     // Buscar qué preguntas ya existen
-    const placeholders = body.failedQuestions.map(() => "?").join(", ");
+    const placeholders = body.correctQuestionsIds.map(() => "?").join(", ");
     const existingRecords = await this.databaseService.executeQuery(
       `SELECT idPregunta FROM preguntasfallidas WHERE idPregunta IN (${placeholders})`,
-      body.failedQuestions);
+      body.correctQuestionsIds);
 
     // Extraer solo las que no existen
     const existingIds = new Set(existingRecords.map((q: { idPregunta: string }) => q.idPregunta));
-    const newQuestions = body.failedQuestions.filter(id => !existingIds.has(id));
+    const newQuestions = body.correctQuestionsIds.filter(id => !existingIds.has(id));
 
-    console.log("newQuestions", newQuestions)
     if (newQuestions.length === 0) {
       return { message: 'No new questions to save' };
     }
 
     // Insertar solo las nuevas
-    const newPlaceholders = newQuestions.map(() => "(?)").join(", ");
+    const newPlaceholders = newQuestions.map(() => "(?, ?)").join(", ");
+    const values = newQuestions.flatMap(id => [id, body.userId]);
+
     await this.databaseService.executeQuery(
-      `INSERT INTO preguntasfallidas (idPregunta) VALUES ${newPlaceholders}`,
-      newQuestions
+      `INSERT INTO preguntasfallidas (idPregunta, idUsuario) VALUES ${newPlaceholders}`,
+      values
     );
 
     return { message: 'OK' };
   }
 
-  async getIncorrectQuestions(quantity: number): Promise<any> {
+  async getIncorrectQuestions(body: IncorrectQuestionsDto): Promise<any> {
 
     const randomQuestions = await this.databaseService.executeQuery(`
-      SELECT idPregunta FROM preguntasfallidas ORDER BY RAND() LIMIT ?;
-      `, [quantity]);
+      SELECT idPregunta FROM preguntasfallidas where intentos > 0 AND idUsuario = ? ORDER BY RAND() LIMIT ?;
+      `, [body.userId, body.quantity.toString()]);
 
     const questionIds = randomQuestions.map((q: { idPregunta: string }) => q.idPregunta);
     if (questionIds.length === 0) {
@@ -355,24 +355,86 @@ export class AppService {
       (SELECT a2.idAlternativa 
           FROM alternativas a2 
           WHERE a2.idPregunta = p.idPregunta AND a2.respuesta = 1 LIMIT 1
-      ) AS correctAnswer 
+      ) AS correctAnswer,
+       f.intentos
       FROM preguntas p 
       INNER JOIN alternativas a ON a.idPregunta = p.idPregunta
       INNER JOIN temas t ON t.idTema = p.idTema
+      LEFT JOIN preguntasfallidas f ON f.idPregunta = p.idPregunta
       WHERE p.idPregunta IN (${newPlaceholders})
       GROUP BY p.idPregunta
       ORDER BY p.idTema`, questionIds);
     return questions
   }
 
-  async getQuantityQuestions(tableName: string): Promise<any> {
-    const quantity = await this.databaseService.executeQuery(`SELECT COUNT(*) AS quantity FROM ${tableName}`);
+  async getQuantityQuestions(body: QuantityQuestionsDto): Promise<any> {
+    let quantity = 0
+
+    if(body.tableName === "preguntasfallidas"){
+      quantity = await this.databaseService.executeQuery(`SELECT COUNT(*) AS quantity FROM ${body.tableName} 
+        WHERE INTENTOS > 0 and idUsuario = ?`, [body.userId]);
+    } else {
+      quantity = await this.databaseService.executeQuery(`SELECT COUNT(*) AS quantity FROM ${body.tableName}`);
+    }
     // Validar que el resultado tenga datos y extraer la cantidad
     if (Array.isArray(quantity) && quantity.length > 0 && quantity[0]?.quantity !== undefined) {
       return quantity[0].quantity;
     }
 
-    console.warn(`Tabla "${tableName}" no encontrada o sin registros.`);
+    console.warn(`Tabla "${body.tableName}" no encontrada o sin registros.`);
     return null;
+  }
+
+  async updateIncorrectQuestions(body: CrudQuestionsDto): Promise<any> {
+    if (body.correctQuestionsIds.length === 0 && body.incorrectQuestionIds.length === 0) {
+      return { message: 'No questions to update' };
+    }
+    
+    let updatedCount = 0;
+    // 1. Buscar las preguntas en `correctQuestionsId` que existen y tienen intentos > 0
+    if (body.correctQuestionsIds.length > 0) {
+      const placeholders = body.correctQuestionsIds.map(() => "?").join(", ");
+      const existingRecords = await this.databaseService.executeQuery(
+        `SELECT idPregunta, intentos FROM preguntasfallidas 
+          WHERE idUsuario = ? AND idPregunta IN (${placeholders}) AND intentos > 0`,
+        [body.userId, ...body.correctQuestionsIds]
+      );
+
+      if (existingRecords.length > 0) {
+        // Actualizar el campo intentos restándole 1
+        const updatePromises = existingRecords.map((record: { idPregunta: string; intentos: number }) =>
+          this.databaseService.executeQuery(
+            `UPDATE preguntasfallidas SET intentos = ? WHERE idUsuario = ? AND idPregunta = ?`,
+            [(record.intentos - 1).toString(), body.userId, record.idPregunta]
+          )
+        );
+
+        await Promise.all(updatePromises);
+        updatedCount += existingRecords.length;
+      }
+    }
+
+    // 2. Buscar las preguntas en `incorrectQuestionIds` que existen con el mismo userId
+    if (body.incorrectQuestionIds.length > 0) {
+      const incorrectPlaceholders = body.incorrectQuestionIds.map(() => "?").join(", ");
+      const existingIncorrectRecords = await this.databaseService.executeQuery(
+        `SELECT idPregunta FROM preguntasfallidas WHERE idUsuario = ? AND idPregunta IN (${incorrectPlaceholders})`,
+        [body.userId, ...body.incorrectQuestionIds]
+      );
+
+      if (existingIncorrectRecords.length > 0) {
+        const updateIncorrectPromises = existingIncorrectRecords.map((record: { idPregunta: string }) =>
+          this.databaseService.executeQuery(
+            `UPDATE preguntasfallidas SET intentos = 2 WHERE idUsuario = ? AND idPregunta = ?`,
+            [body.userId, record.idPregunta]
+          )
+        );
+
+        await Promise.all(updateIncorrectPromises);
+        updatedCount += existingIncorrectRecords.length;
+      }
+    }
+
+    return { message: `${updatedCount} questions updated successfully` };
   }
 }
