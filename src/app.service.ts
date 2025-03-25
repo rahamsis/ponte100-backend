@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { DatabaseService } from './database/database.service';
-import { BodyDto, CrudQuestionsDto, IncorrectQuestionsDto, QuantityQuestionsDto, SessionDto, SessionTokenDto, ValidatePersonDto, VerificationTokenDto } from './dto/body.dto';
+import { BodyDto, CrudQuestionsDto, IncorrectQuestionsDto, QuantityQuestionsDto, SessionDto, SessionTokenDto, UpdateUserDeleteVerification, ValidatePersonDto, VerificationTokenDto } from './dto/body.dto';
 import { v4 as uuidv4 } from 'uuid'
 import * as bcrypt from 'bcrypt';
 
@@ -442,7 +442,6 @@ export class AppService {
     const expires = new Date(body.expires).toISOString().slice(0, 19).replace("T", " "); //expira en 24 horas
 
     const response = await this.databaseService.executeQuery(`SELECT * FROM emailverifications where userId = ?`, [body.userId]);
-
     if (!response || response.length === 0) {
       await this.databaseService.executeQuery(`INSERT INTO emailverifications (userId, token, expiresAt)
         VALUES( ?, ?, ?)`, [body.userId, body.token, expires]);
@@ -454,5 +453,26 @@ export class AppService {
 
       return { message: "Datos de emailverifications actualizados correctamente" }
     }
+  }
+
+  async getEmailVeification(body: SessionTokenDto): Promise<any> {
+    const session = await this.databaseService.executeQuery(`SELECT * FROM emailverifications 
+            WHERE token = ? AND expiresAt > NOW()`, [body.sessionToken]);
+
+    return session || null;
+  }
+
+  async updateUserDeleteVerification(body: UpdateUserDeleteVerification): Promise<any> {
+    // 1. borrar el verification email
+    await this.databaseService.executeQuery(
+      `DELETE FROM emailverifications WHERE userId = ?`, [body.userId]
+    );
+
+    // 2. Actualizar el usuario
+    await this.databaseService.executeQuery(
+      `UPDATE users SET verified = true WHERE userId = ? `, [body.userId]
+    );
+
+    return { message: "Datos de usuario actualizados correctamente" }
   }
 }

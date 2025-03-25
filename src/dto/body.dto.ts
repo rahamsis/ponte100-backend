@@ -43,3 +43,8 @@ export class VerificationTokenDto {
   token: string;
   expires: Date;
 }
+
+export class UpdateUserDeleteVerification {
+  userId: string;
+  token: string;
+}
