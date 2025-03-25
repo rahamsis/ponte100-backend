@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { DatabaseService } from './database/database.service';
-import { BodyDto, CrudQuestionsDto, IncorrectQuestionsDto, QuantityQuestionsDto, SessionDto, SessionTokenDto, ValidatePersonDto } from './dto/body.dto';
+import { BodyDto, CrudQuestionsDto, IncorrectQuestionsDto, QuantityQuestionsDto, SessionDto, SessionTokenDto, ValidatePersonDto, VerificationTokenDto } from './dto/body.dto';
 import { v4 as uuidv4 } from 'uuid'
 import * as bcrypt from 'bcrypt';
 
@@ -370,7 +370,7 @@ export class AppService {
   async getQuantityQuestions(body: QuantityQuestionsDto): Promise<any> {
     let quantity = 0
 
-    if(body.tableName === "preguntasfallidas"){
+    if (body.tableName === "preguntasfallidas") {
       quantity = await this.databaseService.executeQuery(`SELECT COUNT(*) AS quantity FROM ${body.tableName} 
         WHERE INTENTOS > 0 and idUsuario = ?`, [body.userId]);
     } else {
@@ -389,7 +389,7 @@ export class AppService {
     if (body.correctQuestionsIds.length === 0 && body.incorrectQuestionIds.length === 0) {
       return { message: 'No questions to update' };
     }
-    
+
     let updatedCount = 0;
     // 1. Buscar las preguntas en `correctQuestionsId` que existen y tienen intentos > 0
     if (body.correctQuestionsIds.length > 0) {
@@ -436,5 +436,23 @@ export class AppService {
     }
 
     return { message: `${updatedCount} questions updated successfully` };
+  }
+
+  async saveVerificationToken(body: VerificationTokenDto): Promise<any> {
+    const expires = new Date(body.expires).toISOString().slice(0, 19).replace("T", " "); //expira en 24 horas
+
+    const response = await this.databaseService.executeQuery(`SELECT * FROM emailverifications where userId = ?`, [body.userId]);
+
+    if (!response || response.length === 0) {
+      await this.databaseService.executeQuery(`INSERT INTO emailverifications (userId, token, expiresAt)
+        VALUES( ?, ?, ?)`, [body.userId, body.token, expires]);
+
+      return { message: "Datos de emailverifications creados correctamente" }
+    } else {
+      await this.databaseService.executeQuery(`UPDATE emailverifications SET token = ?, expiresAt = ?
+        WHERE userId = ?`, [body.token, expires, body.userId]);
+
+      return { message: "Datos de emailverifications actualizados correctamente" }
+    }
   }
 }

@@ -1,7 +1,7 @@
 import { Body, Controller, Get, HttpStatus, Post, Res } from '@nestjs/common';
 import { AppService } from './app.service';
 import { ApiTags } from '@nestjs/swagger';
-import { BodyDto, CrudQuestionsDto, IncorrectQuestionsDto, QuantityQuestionsDto, SessionDto, SessionTokenDto, ValidatePersonDto } from './dto/body.dto';
+import { BodyDto, CrudQuestionsDto, IncorrectQuestionsDto, QuantityQuestionsDto, SessionDto, SessionTokenDto, ValidatePersonDto, VerificationTokenDto } from './dto/body.dto';
 import { Response } from 'express';
 
 @ApiTags('Root')
@@ -206,6 +206,19 @@ export class AppController {
   ) {
     try {
       const data = await this.appService.updateIncorrectQuestions(body);
+      return res.status(HttpStatus.OK).json(data);
+    } catch (error) {
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: error.message });
+    }
+  }
+
+  @Post('/backendApi/save-verification-token')
+  async saveVerificationToken(
+    @Res() res: Response,
+    @Body() body: VerificationTokenDto,
+  ) {
+    try {
+      const data = await this.appService.saveVerificationToken(body);
       return res.status(HttpStatus.OK).json(data);
     } catch (error) {
       res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: error.message });

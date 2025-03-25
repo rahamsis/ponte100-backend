@@ -37,3 +37,9 @@ export class CrudQuestionsDto {
   correctQuestionsIds: string[];
   incorrectQuestionIds: string[];
 }
+
+export class VerificationTokenDto {
+  userId: string;
+  token: string;
+  expires: Date;
+}
