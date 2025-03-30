@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { DatabaseService } from './database/database.service';
-import { BodyDto, CrudQuestionsDto, IncorrectQuestionsDto, QuantityQuestionsDto, SessionDto, SessionTokenDto, UpdateUserDeleteVerification, ValidatePersonDto, VerificationTokenDto } from './dto/body.dto';
+import { BodyDto, CrudQuestionsDto, IncorrectQuestionsDto, QuantityQuestionsDto, SessionDto, SessionTokenDto, UpdateProfileUserDto, UpdateUserDeleteVerification, ValidatePersonDto, VerificationTokenDto } from './dto/body.dto';
 import { v4 as uuidv4 } from 'uuid'
 import * as bcrypt from 'bcrypt';
 
@@ -14,7 +14,8 @@ export class AppService {
   }
 
   async getLogin(body: BodyDto): Promise<{ message: string }> {
-    const user = await this.databaseService.executeQuery(`SELECT u.*, s.userIp, s.userDevice 
+    const user = await this.databaseService.executeQuery(`SELECT u.userId, u.username, u.email, u.cip, 
+      u.password, u. dni, u.verified, s.userIp, s.userDevice 
       FROM users u 
       LEFT JOIN sessions s ON s.userId = u.userId 
       WHERE u.email=?`, [
@@ -47,8 +48,8 @@ export class AppService {
 
     const hashedPassword = await bcrypt.hash(password, 10)
 
-    await this.databaseService.executeQuery(`INSERT INTO users (userId, name, email, password)
-        VALUES (?,?,?,?)`, [
+    await this.databaseService.executeQuery(`INSERT INTO users (userId, username, email, password, fechaCreacion)
+        VALUES (?,?,?,?,NOW())`, [
       uuidv4(),
       body.username,
       email,
@@ -474,5 +475,67 @@ export class AppService {
     );
 
     return { message: "Datos de usuario actualizados correctamente" }
+  }
+
+  async getProfileuser(body: UpdateProfileUserDto): Promise<any> {
+    const user = await this.databaseService.executeQuery(
+      `SELECT * FROM users WHERE userId = ?`,
+      [body.userId]
+    );
+
+    return user || null;
+  }
+
+  async updateProfileuser(body: UpdateProfileUserDto): Promise<any> {
+
+    const password = body.password?.trim();
+    const hashedPassword = password ? await bcrypt.hash(password, 10) : null;
+
+    const formattedDate = body.fechaNacimiento ? new Date(body.fechaNacimiento).toISOString().split("T")[0] : null;
+
+    const updateFields: string[] = [];
+    const updateValues: any[] = [];
+
+    // Recorremos cada propiedad del objeto body
+    Object.keys(body).forEach((key) => {
+      const value = body[key as keyof UpdateProfileUserDto];
+
+      // Si el valor no es nulo, vacío o indefinido, lo agregamos a la consulta
+      if (value !== null && value !== undefined && value !== "") {
+        // Omitimos el campo userId directamente
+        if (key === "userId") {
+          return;
+        }
+
+        // Si es la contraseña, usamos el hash
+        if (key === "password" && hashedPassword) {
+          updateFields.push("password = ?");
+          updateValues.push(hashedPassword);
+        } else if (key === "fechaNacimiento" && formattedDate) {
+          updateFields.push("fechaNacimiento = ?");
+          updateValues.push(formattedDate);
+        } else {
+          updateFields.push(`${key} = ?`);
+          updateValues.push(value);
+        }
+      }
+    });
+
+    // Siempre actualizamos la fecha
+    updateFields.push("fechaActualizacion = NOW()");
+
+    // Agregamos el ID del usuario al final
+    updateValues.push(body.userId);
+
+    // Construimos la consulta dinámica
+    const sql = `
+        UPDATE users 
+        SET ${updateFields.join(", ")} 
+        WHERE userId = ?
+    `;
+
+    await this.databaseService.executeQuery(sql, updateValues);
+
+    return { message: "Usuario actualizado correctamente" };
   }
 }

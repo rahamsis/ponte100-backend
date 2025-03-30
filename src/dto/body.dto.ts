@@ -48,3 +48,23 @@ export class UpdateUserDeleteVerification {
   userId: string;
   token: string;
 }
+
+export class UpdateProfileUserDto {
+  userId: string;
+  nombre: string;
+  apellidos: string;
+  email: string;
+  grupo: string;
+  grado: string;
+  dni: string;
+  cip: string;
+  fechaNacimiento: string;
+  genero: string;
+  username: string;
+  password: string;
+  telefono: number;
+  direccion: string;
+  ciudad: string;
+  codigoPostal: string;
+  provincia: string;
+}
