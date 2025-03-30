@@ -1,7 +1,11 @@
 import { Body, Controller, Get, HttpStatus, Post, Res } from '@nestjs/common';
 import { AppService } from './app.service';
 import { ApiTags } from '@nestjs/swagger';
-import { BodyDto, CrudQuestionsDto, IncorrectQuestionsDto, QuantityQuestionsDto, SessionDto, SessionTokenDto, UpdateUserDeleteVerification, ValidatePersonDto, VerificationTokenDto } from './dto/body.dto';
+import {
+  BodyDto, CrudQuestionsDto, IncorrectQuestionsDto, QuantityQuestionsDto,
+  SessionDto, SessionTokenDto, UpdateProfileUserDto, UpdateUserDeleteVerification,
+  ValidatePersonDto, VerificationTokenDto
+} from './dto/body.dto';
 import { Response } from 'express';
 
 @ApiTags('Root')
@@ -35,9 +39,9 @@ export class AppController {
   ) {
     try {
       const data = await this.appService.createAccount(body)
-    
+
       return res.status(HttpStatus.OK).json(data);
-    } catch(error) {
+    } catch (error) {
       res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: error.message });
     }
   }
@@ -71,7 +75,7 @@ export class AppController {
 
   @Get('/backendApi/temas')
   async getTemas(
-    @Res() res: Response, 
+    @Res() res: Response,
   ) {
     try {
       const data = await this.appService.getTemas();
@@ -99,7 +103,7 @@ export class AppController {
   @Post('/backendApi/questions-random-with-limit')
   async getQuestionsRamdonWithLimit(
     @Res() res: Response,
-    @Body() body: {limit: number},
+    @Body() body: { limit: number },
   ) {
     try {
       const data = await this.appService.getQuestionsRamdonWithLimit(body.limit);
@@ -150,7 +154,7 @@ export class AppController {
   @Post('/backendApi/questions-siecopol-with-offset')
   async getQuestionsSiecopolWithOffset(
     @Res() res: Response,
-    @Body() body: { index: number},
+    @Body() body: { index: number },
   ) {
     try {
       const data = await this.appService.getQuestionsSiecopolWithOffset(body.index);
@@ -252,4 +256,33 @@ export class AppController {
       res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: error.message });
     }
   }
+
+  @Post('/backendApi/user-data')
+  async getProfileuser(
+    @Res() res: Response,
+    @Body() body: UpdateProfileUserDto,
+  ) {
+    try {
+      const data = await this.appService.getProfileuser(body);
+
+      return res.status(HttpStatus.OK).json(data);
+    } catch (error) {
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: error.message });
+    }
+  }
+
+  @Post('/backendApi/user-update')
+  async updateProfileuser(
+    @Res() res: Response,
+    @Body() body: UpdateProfileUserDto,
+  ) {
+    try {
+      const data = await this.appService.updateProfileuser(body);
+
+      return res.status(HttpStatus.OK).json(data);
+    } catch (error) {
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: error.message });
+    }
+  }
+  
 }
