@@ -15,7 +15,7 @@ export class AppService {
 
   async getLogin(body: BodyDto): Promise<{ message: string }> {
     const user = await this.databaseService.executeQuery(`SELECT u.userId, u.username, u.email, u.cip, 
-      u.password, u. dni, u.verified, s.userIp, s.userDevice 
+      u.password, u. dni, u.verified, s.userIp, s.userDevice, u.profile
       FROM users u 
       LEFT JOIN sessions s ON s.userId = u.userId 
       WHERE u.email=?`, [
