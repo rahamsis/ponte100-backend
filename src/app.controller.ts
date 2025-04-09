@@ -285,4 +285,16 @@ export class AppController {
     }
   }
   
+  @Post('/backendApi/questions-taller')
+  async getQuestionsToTaller(
+    @Res() res: Response,
+    @Body() body: { index: number, limit: number, offset: number },
+  ) {
+    try {
+      const data = await this.appService.getQuestionsToTaller(body);
+      return res.status(HttpStatus.OK).json(data);
+    } catch (error) {
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: error.message });
+    }
+  }
 }

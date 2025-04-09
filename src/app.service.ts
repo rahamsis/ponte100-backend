@@ -238,53 +238,12 @@ export class AppService {
   }
 
   async getQuestionsSiecopolWithOffset(index: number): Promise<any> {
-    const temas = [
-      { idTema: 'T00001', limit: 9, offset: 9 * index },
-      { idTema: 'T00002', limit: 5, offset: 5 * index },
-      { idTema: 'T00003', limit: 9, offset: 9 * index },
-      { idTema: 'T00004', limit: 10, offset: 10 * index },
-      { idTema: 'T00005', limit: 6, offset: 6 * index },
-      { idTema: 'T00006', limit: 2, offset: 2 * index },
-      index === 24 ? { idTema: 'T00007', limit: 12, offset: (10 * index) }
-        : index >= 25 ? { idTema: 'T00007', limit: 12, offset: (10 * index) + 2 }
-          : { idTema: 'T00007', limit: 10, offset: 10 * index },
-      { idTema: 'T00008', limit: 5, offset: 5 * index },
-      { idTema: 'T00009', limit: 6, offset: 6 * index },
-      { idTema: 'T00010', limit: 14, offset: 14 * index },
-      { idTema: 'T00011', limit: 3, offset: 3 * index },
-      { idTema: 'T00012', limit: 5, offset: 5 * index },
-      { idTema: 'T00013', limit: 4, offset: 4 * index },
-      index === 24 ? { idTema: 'T00014', limit: 17, offset: (2 * index) }
-        : index >= 25 ? { idTema: 'T00014', limit: 17, offset: (2 * index) + 42 }
-          : { idTema: 'T00014', limit: 2, offset: 2 * index },
-      index >= 25 ? { idTema: 'T00015', limit: 8, offset: 5 * index }
-        : { idTema: 'T00015', limit: 5, offset: 5 * index },
-      { idTema: 'T00016', limit: 3, offset: 3 * index },
-      index === 22 ? { idTema: 'T00017', limit: 5, offset: 1 * index }
-        : index === 23 ? { idTema: 'T00017', limit: 14, offset: (1 * index) + 4 }
-          : index === 24 ? { idTema: 'T00017', limit: 19, offset: (1 * index) + 17 }
-            : index >= 25 ? { idTema: 'T00017', limit: 19, offset: (1 * index) + 36 }
-              : { idTema: 'T00017', limit: 1, offset: 1 * index },
-      index === 21 ? { idTema: 'T00018', limit: 3, offset: 1 * index }
-        : index === 22 ? { idTema: 'T00018', limit: 3, offset: (1 * index) + 2 }
-          : index === 23 ? { idTema: 'T00018', limit: 3, offset: (1 * index) + 4 }
-            : index === 24 ? { idTema: 'T00018', limit: 3, offset: (1 * index) + 6 }
-              : index >= 25 ? { idTema: 'T00018', limit: 5, offset: (1 * index) + 8 }
-                : { idTema: 'T00018', limit: 1, offset: 1 * index },
-    ];
+    const idExamen = index < 9 ? 'EXAM0000' + (index + 1) : 'EXAM000' + (index + 1);
 
-    // Ejecutar todas las consultas en paralelo
-    const queries = temas.map(({ idTema, limit, offset }) =>
-      this.databaseService.executeQuery(`SELECT idPregunta FROM preguntas WHERE idTema = ? 
-              ORDER BY CAST(idPregunta AS UNSIGNED) LIMIT ? OFFSET ?`, [idTema, limit.toString(), offset.toString()])
-    );
+    const results = await this.databaseService.executeQuery(`SELECT idPregunta FROM preguntas WHERE idExamen = ? 
+            ORDER BY CAST(idPregunta AS UNSIGNED)`, [idExamen]);
 
-    // Esperar a que todas las consultas terminen
-    const results = await Promise.all(queries);
-
-    // Extraer los IDs de todas las preguntas seleccionadas
-    const questionIds = results.flatMap((rows) =>
-      rows.map((q: { idPregunta: string }) => q.idPregunta));
+    const questionIds = results.map((q: { idPregunta: string }) => q.idPregunta);
 
     // Crear placeholders seguros para evitar inyección SQL
     const placeholders = questionIds.map(() => "?").join(", ");
@@ -330,10 +289,10 @@ export class AppService {
     const newPlaceholders = newQuestions.map(() => "(?, ?)").join(", ");
     const values = newQuestions.flatMap(id => [id, body.userId]);
 
-    await this.databaseService.executeQuery(
-      `INSERT INTO preguntasfallidas (idPregunta, idUsuario) VALUES ${newPlaceholders}`,
-      values
-    );
+    // await this.databaseService.executeQuery(
+    //   `INSERT INTO preguntasfallidas (idPregunta, idUsuario) VALUES ${newPlaceholders}`,
+    //   values
+    // );
 
     return { message: 'OK' };
   }
@@ -537,5 +496,35 @@ export class AppService {
     await this.databaseService.executeQuery(sql, updateValues);
 
     return { message: "Usuario actualizado correctamente" };
+  }
+
+  async getQuestionsToTaller(body: any): Promise<any> {
+    const idExamen = body.index < 9 ? 'EXAM0000' + (body.index + 1) : 'EXAM000' + (body.index + 1);
+
+    const results = await this.databaseService.executeQuery(`SELECT idPregunta FROM preguntas WHERE idExamen = ? 
+            ORDER BY idTema, CAST(idPregunta AS UNSIGNED) LIMIT ? OFFSET ?`,
+      [idExamen, body.limit.toString(), body.offset.toString()]);
+
+    const questionIds = results.map((q: { idPregunta: string }) => q.idPregunta);
+
+    // Crear placeholders seguros para evitar inyección SQL
+    const placeholders = questionIds.map(() => "?").join(", ");
+
+    // Traer los detalles de esas preguntas y sus respuestas
+    const questions = await this.databaseService.executeQuery(`
+      SELECT p.idPregunta AS id, p.pregunta AS question, p.idTema, t.tema,
+      GROUP_CONCAT(CONCAT(a.idAlternativa, "@", a.alternativa) ORDER BY RAND() SEPARATOR '||') AS options, 
+      (SELECT a2.idAlternativa 
+          FROM alternativas a2 
+          WHERE a2.idPregunta = p.idPregunta AND a2.respuesta = 1 LIMIT 1
+      ) AS correctAnswer 
+      FROM preguntas p 
+      INNER JOIN alternativas a ON a.idPregunta = p.idPregunta
+      INNER JOIN temas t ON t.idTema = p.idTema
+      WHERE p.idPregunta IN (${placeholders})
+      GROUP BY p.idPregunta
+      ORDER BY p.idTema`, questionIds);
+
+    return questions || null;
   }
 }
