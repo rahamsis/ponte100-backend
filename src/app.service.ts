@@ -289,10 +289,10 @@ export class AppService {
     const newPlaceholders = newQuestions.map(() => "(?, ?)").join(", ");
     const values = newQuestions.flatMap(id => [id, body.userId]);
 
-    // await this.databaseService.executeQuery(
-    //   `INSERT INTO preguntasfallidas (idPregunta, idUsuario) VALUES ${newPlaceholders}`,
-    //   values
-    // );
+    await this.databaseService.executeQuery(
+      `INSERT INTO preguntasfallidas (idPregunta, idUsuario) VALUES ${newPlaceholders}`,
+      values
+    );
 
     return { message: 'OK' };
   }
