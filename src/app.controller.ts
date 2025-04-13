@@ -89,10 +89,24 @@ export class AppController {
   @Post('/backendApi/questions-by-idtema')
   async getQuestionsByIdTema(
     @Res() res: Response,
-    @Body() body: { idTema: string },
+    @Body() body: { idTema: string, limit: number },
   ) {
     try {
-      const data = await this.appService.getQuestionsByIdTema(body.idTema);
+      const data = await this.appService.getQuestionsByIdTema(body.idTema, body.limit);
+
+      return res.status(HttpStatus.OK).json(data);
+    } catch (error) {
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: error.message });
+    }
+  }
+
+  @Post('/backendApi/questions-habilidades')
+  async getQuestionsHabilidades(
+    @Res() res: Response,
+    @Body() body: { idTema: string, limit: number },
+  ) {
+    try {
+      const data = await this.appService.getQuestionsHabilidades(body.idTema, body.limit);
 
       return res.status(HttpStatus.OK).json(data);
     } catch (error) {

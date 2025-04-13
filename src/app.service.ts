@@ -86,8 +86,17 @@ export class AppService {
     return temas || null;
   }
 
-  async getQuestionsByIdTema(idTema: string): Promise<any> {
-    const questions = await this.databaseService.executeQuery(`SELECT p.idPregunta AS id, p.pregunta AS question, 
+  async getQuestionsByIdTema(idTema: string, limit: number): Promise<any> {
+    const results = await this.databaseService.executeQuery(`SELECT idPregunta FROM preguntas WHERE idTema = ? 
+      ORDER BY RAND() LIMIT ?`, [idTema, limit.toString()])
+
+    const questionIds = results.map((q: { idPregunta: string }) => q.idPregunta);
+
+    // Crear placeholders seguros para evitar inyección SQL
+    const placeholders = questionIds.map(() => "?").join(", ");
+
+    const questions = await this.databaseService.executeQuery(`
+      SELECT p.idPregunta AS id, p.pregunta AS question, p.idTema, t.tema,
             GROUP_CONCAT(CONCAT(a.idAlternativa,"@", a.alternativa) ORDER BY a.idAlternativa SEPARATOR '||') AS options, 
             (SELECT a2.idAlternativa 
                 FROM alternativas a2 
@@ -95,8 +104,35 @@ export class AppService {
             ) AS correctAnswer 
             FROM preguntas p 
             INNER JOIN alternativas a ON a.idPregunta = p.idPregunta 
-            WHERE p.idTema = ?
-            GROUP BY p.idPregunta`, [idTema]);
+            INNER JOIN temas t ON t.idTema = p.idTema
+            WHERE p.idPregunta IN (${placeholders})
+            GROUP BY p.idPregunta`, questionIds);
+
+    return questions || null;
+  }
+
+  async getQuestionsHabilidades(idTema: string, limit: number): Promise<any> {
+    const results = await this.databaseService.executeQuery(`SELECT idPregunta FROM preguntas WHERE idTema = ? 
+      ORDER BY CAST(idPregunta AS UNSIGNED) LIMIT ?`, [idTema, limit.toString()])
+
+    const questionIds = results.map((q: { idPregunta: string }) => q.idPregunta);
+
+    // Crear placeholders seguros para evitar inyección SQL
+    const placeholders = questionIds.map(() => "?").join(", ");
+
+    const questions = await this.databaseService.executeQuery(`
+      SELECT p.idPregunta AS id, p.pregunta AS question, p.idTema, t.tema,
+            GROUP_CONCAT(CONCAT(a.idAlternativa,"@", a.alternativa) ORDER BY a.idAlternativa SEPARATOR '||') AS options, 
+            (SELECT a2.idAlternativa 
+                FROM alternativas a2 
+                WHERE a2.idPregunta = p.idPregunta AND a2.respuesta = 1 LIMIT 1
+            ) AS correctAnswer 
+            FROM preguntas p 
+            INNER JOIN alternativas a ON a.idPregunta = p.idPregunta 
+            INNER JOIN temas t ON t.idTema = p.idTema
+            WHERE p.idPregunta IN (${placeholders})
+            GROUP BY p.idPregunta`, questionIds);
+
     return questions || null;
   }
 
@@ -139,7 +175,8 @@ export class AppService {
 
     } else {
       // Obtener preguntas aleatorias de manera eficiente, según la cantidad solicitada
-      const randomQuestions = await this.databaseService.executeQuery(`SELECT idPregunta FROM preguntas ORDER BY RAND() LIMIT ?`, [limite.toString()]);
+      const randomQuestions = await this.databaseService.executeQuery(`
+        SELECT idPregunta FROM preguntas ORDER BY RAND() LIMIT ?`, [limite.toString()]);
       questionIds = randomQuestions.map((q: { idPregunta: string }) => q.idPregunta);
     }
 
