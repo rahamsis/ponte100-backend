@@ -136,6 +136,32 @@ export class AppService {
     return questions || null;
   }
 
+  async getQuestionsAndAnswer(idTema: string): Promise<any> {
+    const results = await this.databaseService.executeQuery(`SELECT idPregunta FROM preguntas WHERE idTema = ? 
+      ORDER BY CAST(idPregunta AS UNSIGNED)`, [idTema])
+
+    const questionIds = results.map((q: { idPregunta: string }) => q.idPregunta);
+
+    // Crear placeholders seguros para evitar inyección SQL
+    const placeholders = questionIds.map(() => "?").join(", ");
+
+    const questions = await this.databaseService.executeQuery(`
+      SELECT p.idPregunta AS id, p.pregunta AS question, p.idTema, t.tema, 
+        GROUP_CONCAT(CONCAT(pc.palabra) SEPARATOR ',') AS claves,
+            (SELECT a2.alternativa 
+                FROM alternativas a2 
+                WHERE a2.idPregunta = p.idPregunta AND a2.respuesta = 1 LIMIT 1
+            ) AS correctAnswer 
+            FROM preguntas p 
+            INNER JOIN alternativas a ON a.idPregunta = p.idPregunta 
+            INNER JOIN temas t ON t.idTema = p.idTema
+            LEFT JOIN palabrasclaves pc on pc.idPregunta = p.idPregunta
+            WHERE p.idPregunta IN (${placeholders})
+            GROUP BY p.idPregunta`, questionIds);
+
+    return questions || null;
+  }
+
   async getQuestionsRamdonWithLimit(limite: number): Promise<any> {
     let questionIds: string[] = [];
     if (limite === 100 || limite === 50) {
