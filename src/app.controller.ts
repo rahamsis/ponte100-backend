@@ -114,6 +114,20 @@ export class AppController {
     }
   }
 
+  @Post('/backendApi/questions-and-answer')
+  async getQuestionsAndAnswer(
+    @Res() res: Response,
+    @Body() body: { idTema: string },
+  ) {
+    try {
+      const data = await this.appService.getQuestionsAndAnswer(body.idTema);
+
+      return res.status(HttpStatus.OK).json(data);
+    } catch (error) {
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: error.message });
+    }
+  }
+
   @Post('/backendApi/questions-random-with-limit')
   async getQuestionsRamdonWithLimit(
     @Res() res: Response,
@@ -298,7 +312,7 @@ export class AppController {
       res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: error.message });
     }
   }
-  
+
   @Post('/backendApi/questions-taller')
   async getQuestionsToTaller(
     @Res() res: Response,
