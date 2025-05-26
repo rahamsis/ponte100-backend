@@ -1,5 +1,4 @@
 import { Controller, Get, Query } from '@nestjs/common';
-import cloudinary from './config/cloudinary.config';
 import { ApiTags } from '@nestjs/swagger';
 
 @ApiTags('Root')
