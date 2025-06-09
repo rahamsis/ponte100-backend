@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { DatabaseService } from './database/database.service';
-import { BodyDto, CrudQuestionsDto, IncorrectQuestionsDto, QuantityQuestionsDto, SessionDto, SessionTokenDto, UpdateProfileUserDto, UpdateUserDeleteVerification, ValidatePersonDto, VerificationTokenDto } from './dto/body.dto';
+import {
+  BodyDto, CrudProgress, CrudQuestionsDto, IncorrectQuestionsDto,
+  ProgressResultDto, SessionDto, SessionTokenDto, UpdateProfileUserDto,
+  UpdateUserDeleteVerification, ValidatePersonDto, VerificationTokenDto
+} from './dto/body.dto';
 import { v4 as uuidv4 } from 'uuid'
 import * as bcrypt from 'bcrypt';
 
@@ -9,13 +13,9 @@ export class AppService {
 
   constructor(private readonly databaseService: DatabaseService) { }
 
-  getHello(): string {
-    return 'Hello World!';
-  }
-
   async getLogin(body: BodyDto): Promise<{ message: string }> {
     const user = await this.databaseService.executeQuery(`SELECT u.userId, u.username, u.email, u.cip, 
-      u.password, u. dni, u.verified, s.userIp, s.userDevice, u.profile
+      u.password, u. dni, u.verified, s.userIp, s.userDevice, u.profile, u.welcome
       FROM users u 
       LEFT JOIN sessions s ON s.userId = u.userId 
       WHERE u.email=?`, [
@@ -28,7 +28,7 @@ export class AppService {
 
     const passwordsMatch = await bcrypt.compare(body.password, user[0].password);
     if (!passwordsMatch) {
-      throw new Error('Tú contraseña no es válida.');
+      throw new Error('Credenciales inválidas.');
     }
 
     return user[0];
@@ -78,6 +78,35 @@ export class AppService {
             ORDER BY createdAt DESC LIMIT 1`, [body.sessionToken]);
 
     return session || null;
+  }
+
+  async getGrados(): Promise<any> {
+    const grados = await this.databaseService.executeQuery(`SELECT * FROM grados
+            ORDER BY idGrado ASC`);
+
+    return grados || null;
+  }
+
+  async getGradoById(id: string): Promise<any> {
+    const grado = await this.databaseService.executeQuery(`SELECT * FROM grados 
+      WHERE idGrado = ? ORDER BY idGrado ASC`, [id]);
+
+    return grado || null;
+  }
+
+  async updateUserGrado(idGrado: string, userId: string): Promise<any> {
+    const result = await this.databaseService.executeQuery(`UPDATE users 
+      SET idGradoObjetivo = ?, welcome = 1, fechaActualizacion = NOW()
+      WHERE userId = ?`, [idGrado, userId]);
+
+    return result || null;
+  }
+
+  async getMainMenu(): Promise<any> {
+    const result = await this.databaseService.executeQuery(`SELECT * FROM menu
+            ORDER BY idMenu ASC`);
+
+    return result || null;
   }
 
   async getTemas(): Promise<any> {
@@ -300,8 +329,7 @@ export class AppService {
     return exams || null;
   }
 
-  async getQuestionsSiecopolWithOffset(index: number): Promise<any> {
-    const idExamen = index < 9 ? 'EXAM0000' + (index + 1) : 'EXAM000' + (index + 1);
+  async getQuestionsSiecopolExamNoRepeat(idExamen: string): Promise<any> {
 
     const results = await this.databaseService.executeQuery(`SELECT idPregunta FROM preguntas WHERE idExamen = ? 
             ORDER BY CAST(idPregunta AS UNSIGNED)`, [idExamen]);
@@ -388,24 +416,6 @@ export class AppService {
       GROUP BY p.idPregunta
       ORDER BY p.idTema`, questionIds);
     return questions
-  }
-
-  async getQuantityQuestions(body: QuantityQuestionsDto): Promise<any> {
-    let quantity = 0
-
-    if (body.tableName === "preguntasfallidas") {
-      quantity = await this.databaseService.executeQuery(`SELECT COUNT(*) AS quantity FROM ${body.tableName} 
-        WHERE INTENTOS > 0 and idUsuario = ?`, [body.userId]);
-    } else {
-      quantity = await this.databaseService.executeQuery(`SELECT COUNT(*) AS quantity FROM ${body.tableName}`);
-    }
-    // Validar que el resultado tenga datos y extraer la cantidad
-    if (Array.isArray(quantity) && quantity.length > 0 && quantity[0]?.quantity !== undefined) {
-      return quantity[0].quantity;
-    }
-
-    console.warn(`Tabla "${body.tableName}" no encontrada o sin registros.`);
-    return null;
   }
 
   async updateIncorrectQuestions(body: CrudQuestionsDto): Promise<any> {
@@ -590,4 +600,71 @@ export class AppService {
 
     return questions || null;
   }
+
+  async getProgressResult(body: ProgressResultDto): Promise<any> {
+
+    const result = await this.databaseService.executeQuery(`SELECT idProgreso, idUsuario, tipoExamen, 
+      timer, intentos, totalPreguntas, correctas, incorrectas, nulas, createdDate, 
+      updatedDate FROM progreso WHERE idUsuario = ?`, [body.userId]);
+
+    return result || null;
+  }
+
+  async saveOrUpdateProgress(body: CrudProgress): Promise<any> {
+    if (!body.idUsuario || body.idUsuario.length === 0) {
+      return { message: 'No progress to save' };
+    }
+
+    // Buscar qué progreso ya existen
+    const existingRecords = await this.databaseService.executeQuery(
+      `SELECT * FROM progreso WHERE idUsuario = ? and tipoExamen = ?`,
+      [body.idUsuario, body.tipoExamen]);
+
+    if (existingRecords.length > 0) {
+      const existing = existingRecords[0];
+
+      // Sumar los valores con los existentes
+      const newTimer = existing.timer + body.timer;
+      const newIntentos = existing.intentos + 1;
+      const newTotalPreguntas = existing.totalPreguntas + body.totalPreguntas;
+      const newCorrectas = existing.correctas + body.correctas;
+      const newIncorrectas = existing.incorrectas + body.incorrectas;
+      const newNulas = existing.nulas + body.nulas;
+
+      // Actualizar el progreso existente
+      const result = await this.databaseService.executeQuery(
+        `UPDATE progreso 
+        SET timer = ?, intentos = ?, totalPreguntas = ?, correctas = ?, incorrectas = ?, nulas = ?, updatedDate = NOW() 
+        WHERE idProgreso = ?`,
+        [newTimer, newIntentos, newTotalPreguntas, newCorrectas, newIncorrectas, newNulas, existing.idProgreso]
+      );
+
+      return { message: 'Progress updated successfully', idProgreso: existing.idProgreso };
+    } else {
+      const idProgreso = uuidv4();
+
+      // Insertar nuevo progreso
+      const result = await this.databaseService.executeQuery(
+        `INSERT INTO progreso (idProgreso, idUsuario, tipoExamen, timer, intentos, totalPreguntas, correctas, incorrectas, nulas, createdDate, updatedDate)
+        VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?, NOW(), NOW())`,
+        [idProgreso, body.idUsuario, body.tipoExamen, body.timer, body.totalPreguntas, body.correctas, body.incorrectas, body.nulas]
+      );
+
+      return { message: 'Progress saved successfully', idProgreso: result.insertId };
+    }
+  }
+
+  async getGradoObjetivoByUserId(userId: string): Promise<any> {
+    const grado = await this.databaseService.executeQuery(`SELECT g.idGrado, g.nombreGrado, g.imagen FROM users u
+      INNER JOIN grados g on g.idGrado = u.idGradoObjetivo
+      WHERE u.userId = ?`, [userId]);
+
+    return grado || null;
+  }
+
+  // async getPlans(): Promise<any> {
+  //   const exams = await this.databaseService.executeQuery(`SELECT p.*, GROUP_CONCAT(f.nombre SEPARATOR '||') AS features FROM planes p LEFT JOIN feature f ON f.idFeature = p.idFeature;`);
+
+  //   return exams || null;
+  // }
 }

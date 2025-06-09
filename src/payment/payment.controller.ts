@@ -1,18 +1,20 @@
 import { Controller, Post, Body } from '@nestjs/common';
 import { PaymentService } from './payment.service';
 import { ApiTags } from '@nestjs/swagger';
+import { ChargeDto } from 'src/dto/body.dto';
 
-@ApiTags('Root')
-@Controller('payment')
+
+@ApiTags('Payment')
+@Controller('culqui')
 export class PaymentController {
     constructor(private readonly paymentService: PaymentService) { }
 
-    @Post('/form-token')
+    @Post('/charge')
     async createPayment(
-        @Body() body: { amount: number; orderId: string }
+        @Body() body: ChargeDto
     ) {
         try {
-            const data = await this.paymentService.generateFormToken(body.amount, body.orderId);
+            const data = await this.paymentService.generateFormToken(body);
             return data;
         }
         catch (error) {
