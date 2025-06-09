@@ -1,10 +1,10 @@
-import { Body, Controller, Get, HttpStatus, Post, Res } from '@nestjs/common';
+import { Body, Controller, Get, HttpStatus, Post, Put, Query, Res } from '@nestjs/common';
 import { AppService } from './app.service';
 import { ApiTags } from '@nestjs/swagger';
 import {
-  BodyDto, CrudQuestionsDto, IncorrectQuestionsDto, QuantityQuestionsDto,
+  BodyDto, CrudQuestionsDto, IncorrectQuestionsDto, ProgressResultDto,
   SessionDto, SessionTokenDto, UpdateProfileUserDto, UpdateUserDeleteVerification,
-  ValidatePersonDto, VerificationTokenDto
+  ValidatePersonDto, VerificationTokenDto, CrudProgress
 } from './dto/body.dto';
 import { Response } from 'express';
 
@@ -12,11 +12,6 @@ import { Response } from 'express';
 @Controller()
 export class AppController {
   constructor(private readonly appService: AppService) { }
-
-  @Get()
-  getHello(): string {
-    return this.appService.getHello();
-  }
 
   @Post('/backendApi/login')
   async getLogin(
@@ -72,6 +67,61 @@ export class AppController {
       res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: error.message });
     }
   }
+
+  @Get('/backendApi/grados')
+  async getGrados(
+    @Res() res: Response,
+  ) {
+    try {
+      const data = await this.appService.getGrados();
+
+      return res.status(HttpStatus.OK).json(data);
+    } catch (error) {
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: error.message });
+    }
+  }
+
+  @Get('/backendApi/gradosById')
+  async getGradoById(
+    @Query('id') id: string,
+    @Res() res: Response,
+  ) {
+    try {
+      const data = await this.appService.getGradoById(id);
+
+      return res.status(HttpStatus.OK).json(data);
+    } catch (error) {
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: error.message });
+    }
+  }
+
+  @Put('/backendApi/updateUserGrado')
+  async updateUserGrado(
+    @Res() res: Response,
+    @Body() body: { userId: string; idGrado: string },
+  ) {
+    try {
+      const data = await this.appService.updateUserGrado(body.idGrado, body.userId);
+
+      return res.status(HttpStatus.OK).json(data);
+    } catch (error) {
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: error.message });
+    }
+  }
+
+  @Get('/backendApi/mainmenu')
+  async getMainMenu(
+    @Res() res: Response,
+  ) {
+    try {
+      const data = await this.appService.getMainMenu();
+
+      return res.status(HttpStatus.OK).json(data);
+    } catch (error) {
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: error.message });
+    }
+  }
+
 
   @Get('/backendApi/temas')
   async getTemas(
@@ -180,12 +230,12 @@ export class AppController {
   }
 
   @Post('/backendApi/questions-siecopol-with-offset')
-  async getQuestionsSiecopolWithOffset(
+  async getQuestionsSiecopolExamNoRepeat(
     @Res() res: Response,
-    @Body() body: { index: number },
+    @Body() body: { idExamen: string },
   ) {
     try {
-      const data = await this.appService.getQuestionsSiecopolWithOffset(body.index);
+      const data = await this.appService.getQuestionsSiecopolExamNoRepeat(body.idExamen);
       return res.status(HttpStatus.OK).json(data);
     } catch (error) {
       res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: error.message });
@@ -212,19 +262,6 @@ export class AppController {
   ) {
     try {
       const data = await this.appService.getIncorrectQuestions(body);
-      return res.status(HttpStatus.OK).json(data);
-    } catch (error) {
-      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: error.message });
-    }
-  }
-
-  @Post('/backendApi/quantity-questions')
-  async getQuantityQuestions(
-    @Res() res: Response,
-    @Body() body: QuantityQuestionsDto,
-  ) {
-    try {
-      const data = await this.appService.getQuantityQuestions(body);
       return res.status(HttpStatus.OK).json(data);
     } catch (error) {
       res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: error.message });
@@ -325,4 +362,57 @@ export class AppController {
       res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: error.message });
     }
   }
+
+  @Post('/backendApi/progress-result')
+  async getProgressResult(
+    @Res() res: Response,
+    @Body() body: ProgressResultDto,
+  ) {
+    try {
+      const data = await this.appService.getProgressResult(body);
+      return res.status(HttpStatus.OK).json(data);
+    } catch (error) {
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: error.message });
+    }
+  }
+
+  @Post('/backendApi/save-or-update-progress')
+  async saveOrUpdateProgress(
+    @Res() res: Response,
+    @Body() body: CrudProgress,
+  ) {
+    try {
+      const data = await this.appService.saveOrUpdateProgress(body);
+      return res.status(HttpStatus.OK).json(data);
+    } catch (error) {
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: error.message });
+    }
+  }
+
+  @Get('/backendApi/gradoByUserId')
+  async getGradoObjetivoByUserId(
+    @Query('userId') userId: string,
+    @Res() res: Response,
+  ) {
+    try {
+      const data = await this.appService.getGradoObjetivoByUserId(userId);
+
+      return res.status(HttpStatus.OK).json(data);
+    } catch (error) {
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: error.message });
+    }
+  }
+
+  // Suscripciones
+  // @Get('/backendApi/plans')
+  // async getPlans(
+  //   @Res() res: Response,
+  // ) {
+  //   try {
+  //     const data = await this.appService.getPlans();
+  //     return res.status(HttpStatus.OK).json(data);
+  //   } catch (error) {
+  //     res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: error.message });
+  //   }
+  // }
 }

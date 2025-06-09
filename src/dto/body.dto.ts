@@ -22,9 +22,8 @@ export class ValidatePersonDto {
   dni: string;
 }
 
-export class QuantityQuestionsDto {
+export class ProgressResultDto {
   userId: string;
-  tableName: string;
 }
 
 export class IncorrectQuestionsDto {
@@ -54,8 +53,7 @@ export class UpdateProfileUserDto {
   nombre: string;
   apellidos: string;
   email: string;
-  grupo: string;
-  grado: string;
+  idGrado: string;
   dni: string;
   cip: string;
   fechaNacimiento: string;
@@ -67,4 +65,35 @@ export class UpdateProfileUserDto {
   ciudad: string;
   codigoPostal: string;
   provincia: string;
+}
+
+export class ClienteDto {
+  nombre: string;
+  apellidos: string;
+  telefono: string;
+  direccion: string;
+  departamento: string;
+  provincia: string;
+  codigoPostal: string;
+  identityType: string;
+  identityCode: string;
+}
+
+export class ChargeDto {
+  token: string;
+  email: string;
+  amount: number;
+  nombreProducto: string;
+  cliente: ClienteDto;
+}
+
+export class CrudProgress {
+  idUsuario: string;
+  tipoExamen: string;
+  timer: string;
+  intentos: string;
+  totalPreguntas: string;
+  correctas: string;
+  incorrectas: string;
+  nulas: string;
 }
