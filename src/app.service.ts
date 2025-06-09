@@ -28,7 +28,7 @@ export class AppService {
 
     const passwordsMatch = await bcrypt.compare(body.password, user[0].password);
     if (!passwordsMatch) {
-      throw new Error('Credenciales inválidas.');
+      throw new Error('Credenciales inválidas test.');
     }
 
     return user[0];
