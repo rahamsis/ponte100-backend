@@ -389,7 +389,7 @@ export class AppController {
     }
   }
 
-  @Get('/backendApi/gradoByUserId')
+  @Get('/backendApi/gradoObjetivoByUserId')
   async getGradoObjetivoByUserId(
     @Query('userId') userId: string,
     @Res() res: Response,
