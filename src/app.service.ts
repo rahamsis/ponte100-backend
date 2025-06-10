@@ -14,7 +14,7 @@ export class AppService {
   constructor(private readonly databaseService: DatabaseService) { }
 
   async getLogin(body: BodyDto): Promise<{ message: string }> {
-    console.log("entro aqui:", body)
+
     const user = await this.databaseService.executeQuery(`SELECT u.userId, u.username, u.email, u.cip, 
       u.password, u. dni, u.verified, s.userIp, s.userDevice, u.profile, u.welcome
       FROM users u 
