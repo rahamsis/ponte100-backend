@@ -111,7 +111,9 @@ export class AppService {
   }
 
   async getTemas(): Promise<any> {
-    const temas = await this.databaseService.executeQuery(`SELECT * FROM temas`);
+    const temas = await this.databaseService.executeQuery(`select t.idTema, t.tema, count(*) as quantity from temas t 
+      INNER JOIN preguntas p on p.idTema = t.idTema
+      GROUP by p.idTema ORDER BY p.idTema`);
 
     return temas || null;
   }
@@ -604,11 +606,20 @@ export class AppService {
 
   async getProgressResult(body: ProgressResultDto): Promise<any> {
 
+    // las incorrectas lo saco de la cantidad de la tabla fallidas ya que no hay forma de 
+    // reducir las incorrectas en la tabla progreso
     const result = await this.databaseService.executeQuery(`SELECT idProgreso, idUsuario, tipoExamen, 
-      timer, intentos, totalPreguntas, correctas, incorrectas, nulas, createdDate, 
+      timer, intentos, totalPreguntas, correctas, nulas, createdDate, 
       updatedDate FROM progreso WHERE idUsuario = ?`, [body.userId]);
 
     return result || null;
+  }
+
+  async getQuantiyFallidasByUserId(userId: string): Promise<any> {
+    const cantidadFallidas = await this.databaseService.executeQuery(`select count(*) as cantidadFallidas
+      from preguntasfallidas where idUsuario = ? and intentos > 0`, [userId]);
+
+    return cantidadFallidas || null;
   }
 
   async saveOrUpdateProgress(body: CrudProgress): Promise<any> {
