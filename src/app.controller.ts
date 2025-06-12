@@ -376,6 +376,20 @@ export class AppController {
     }
   }
 
+  @Get('/backendApi/quantityFallidas')
+  async getQuantiyFallidasByUserId(
+    @Query('userId') userId: string,
+    @Res() res: Response,
+  ) {
+    try {
+      const data = await this.appService.getQuantiyFallidasByUserId(userId);
+
+      return res.status(HttpStatus.OK).json(data);
+    } catch (error) {
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: error.message });
+    }
+  }
+
   @Post('/backendApi/save-or-update-progress')
   async saveOrUpdateProgress(
     @Res() res: Response,
