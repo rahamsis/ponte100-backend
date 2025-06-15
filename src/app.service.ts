@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { DatabaseService } from './database/database.service';
 import {
-  BodyDto, CrudProgress, CrudQuestionsDto, IncorrectQuestionsDto,
+  BodyDto, CrudProgress, CrudQuestionsDto, CrudUsuarioTalleres, IncorrectQuestionsDto,
   ProgressResultDto, SessionDto, SessionTokenDto, UpdateProfileUserDto,
   UpdateUserDeleteVerification, ValidatePersonDto, VerificationTokenDto
 } from './dto/body.dto';
@@ -13,10 +13,10 @@ export class AppService {
 
   constructor(private readonly databaseService: DatabaseService) { }
 
-  async getLogin(body: BodyDto): Promise<{ message: string }> {
+  async getLogin(body: BodyDto): Promise<{ user: any }> {
 
     const user = await this.databaseService.executeQuery(`SELECT u.userId, u.username, u.email, u.cip, 
-      u.password, u. dni, u.verified, s.userIp, s.userDevice, u.profile, u.welcome
+      u.password, u. dni, u.verified, s.userIp, s.userDevice, u.profile, u.welcome, u.idPerfil
       FROM users u 
       LEFT JOIN sessions s ON s.userId = u.userId 
       WHERE u.email=?`, [
@@ -29,10 +29,22 @@ export class AppService {
 
     const passwordsMatch = await bcrypt.compare(body.password, user[0].password);
     if (!passwordsMatch) {
-      throw new Error('Credenciales inválidas test.');
+      throw new Error('Credenciales inválidas.');
     }
 
-    return user[0];
+    const menu = await this.databaseService.executeQuery(`SELECT m.idMenu, m.nombre, m.ruta, m.otrasRutas,
+      pm.estado, m.icon 
+      FROM permisomenu as pm 
+      INNER JOIN perfil as p on p.idPerfil = pm.idPerfil
+      INNER JOIN menu as m on m.idMenu = pm.idMenu
+      WHERE p.idPerfil = ? order by m.idMenu`, [user[0].idPerfil]);
+
+    return {
+      user: {
+        ...user[0],
+        menu
+      }
+    };
   }
 
   async createAccount(body: BodyDto): Promise<{ message: string }> {
@@ -574,6 +586,64 @@ export class AppService {
     return { message: "Usuario actualizado correctamente" };
   }
 
+  async gettalleresByUserId(userId: string): Promise<any> {
+    const talleres = await this.databaseService.executeQuery(`SELECT t.idTaller, t.nombreTaller, c.idClase, c.nombreClase, s.idSesion, s.nombreSesion, s.indice, s.limite, s.salto, COALESCE(ut.activo, 0) AS activo
+      FROM taller t
+      LEFT JOIN usuariotalleres ut on t.idTaller = ut.idTaller and ut.idUsuario = ?
+      LEFT JOIN clase c on c.idTaller = t.idTaller
+      LEFT JOIN sesion s on s.idClase = c.idClase;`, [userId]);
+
+    const talleresMap = new Map();
+
+    for (const row of talleres) {
+      const {
+        idTaller,
+        nombreTaller,
+        idClase,
+        nombreClase,
+        idSesion,
+        nombreSesion,
+        indice,
+        limite,
+        salto,
+        activo
+      } = row;
+
+      // 🧱 Taller
+      if (!talleresMap.has(idTaller)) {
+        talleresMap.set(idTaller, {
+          idTaller,
+          nombre: nombreTaller,
+          tallerActivo: activo ?? 0,
+          clases: [],
+        });
+      }
+
+      const taller = talleresMap.get(idTaller);
+
+      // 🧱 Clase
+      let clase = taller.clases.find(c => c.idClase === idClase);
+      if (!clase) {
+        clase = {
+          idClase,
+          nombre: nombreClase,
+          sesiones: [],
+        };
+        taller.clases.push(clase);
+      }
+
+      // 🧱 Sesión
+      clase.sesiones.push({
+        nombre: nombreSesion,
+        indice: indice,
+        limit: limite,
+        offset: salto,
+      });
+    }
+
+    return Array.from(talleresMap.values());
+  }
+
   async getQuestionsToTaller(body: any): Promise<any> {
     const idExamen = body.index < 9 ? 'EXAM0000' + (body.index + 1) : 'EXAM000' + (body.index + 1);
 
@@ -674,9 +744,51 @@ export class AppService {
     return grado || null;
   }
 
-  // async getPlans(): Promise<any> {
-  //   const exams = await this.databaseService.executeQuery(`SELECT p.*, GROUP_CONCAT(f.nombre SEPARATOR '||') AS features FROM planes p LEFT JOIN feature f ON f.idFeature = p.idFeature;`);
+  async getAllUsers(): Promise<any> {
+    const users = await this.databaseService.executeQuery(`SELECT userId, nombre, apellidos, email 
+      FROM users`);
 
-  //   return exams || null;
-  // }
+    return users || null;
+  }
+
+  async getAllTalleres(): Promise<any> {
+    const talleres = await this.databaseService.executeQuery(`SELECT idTaller, nombreTaller FROM taller`);
+
+    return talleres || null;
+  }
+
+  async saveOrUpdateTallerToOneUser(body: CrudUsuarioTalleres): Promise<any> {
+    if (!body.idTaller || body.idUsuario.length === 0) {
+      return { message: 'No taller to save' };
+    }
+
+    // Buscar qué progreso ya existen
+    const existingRecords = await this.databaseService.executeQuery(
+      `SELECT * FROM usuariotalleres WHERE idUsuario = ? and idTaller = ?`,
+      [body.idUsuario, body.idTaller]);
+
+    if (existingRecords.length > 0) {
+      const existing = existingRecords[0];
+
+      // Actualizar el progreso existente
+      const result = await this.databaseService.executeQuery(
+        `UPDATE usuariotalleres set activo = ?, idUsuarioRegistro = ?, updatedDate = NOW()
+        WHERE idUsuario = ? and idTaller = ?`,
+        [body.activo,, body.idUsuarioregistro, body.idUsuario, body.idTaller]
+      );
+
+      return { message: 'usuarioTalleres updated successfully'};
+    } else {
+
+      // Insertar nuevo progreso
+      const result = await this.databaseService.executeQuery(
+        `INSERT INTO usuariotalleres (idUsuario, idTaller, activo, idusuarioregistro, createdDate, updatedDate)
+        VALUES (?, ?, ?, ?, NOW(), NOW())`,
+        [body.idUsuario, body.idTaller, body.activo, body.idUsuarioregistro]
+      );
+
+      return { message: 'usuariotalleres saved successfully'};
+    }
+  }
+
 }

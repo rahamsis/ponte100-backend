@@ -97,3 +97,10 @@ export class CrudProgress {
   incorrectas: string;
   nulas: string;
 }
+
+export class CrudUsuarioTalleres {
+  idUsuario: string;
+  idTaller: string;
+  activo: boolean;
+  idUsuarioregistro: string;
+}

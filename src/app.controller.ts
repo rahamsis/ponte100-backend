@@ -4,7 +4,8 @@ import { ApiTags } from '@nestjs/swagger';
 import {
   BodyDto, CrudQuestionsDto, IncorrectQuestionsDto, ProgressResultDto,
   SessionDto, SessionTokenDto, UpdateProfileUserDto, UpdateUserDeleteVerification,
-  ValidatePersonDto, VerificationTokenDto, CrudProgress
+  ValidatePersonDto, VerificationTokenDto, CrudProgress,
+  CrudUsuarioTalleres
 } from './dto/body.dto';
 import { Response } from 'express';
 
@@ -350,6 +351,20 @@ export class AppController {
     }
   }
 
+  @Get('/backendApi/talleres-by-userId')
+  async gettalleresByUserId(
+    @Query('userId') userId: string,
+    @Res() res: Response,
+  ) {
+    try {
+      const data = await this.appService.gettalleresByUserId(userId);
+
+      return res.status(HttpStatus.OK).json(data);
+    } catch (error) {
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: error.message });
+    }
+  }
+
   @Post('/backendApi/questions-taller')
   async getQuestionsToTaller(
     @Res() res: Response,
@@ -417,16 +432,42 @@ export class AppController {
     }
   }
 
-  // Suscripciones
-  // @Get('/backendApi/plans')
-  // async getPlans(
-  //   @Res() res: Response,
-  // ) {
-  //   try {
-  //     const data = await this.appService.getPlans();
-  //     return res.status(HttpStatus.OK).json(data);
-  //   } catch (error) {
-  //     res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: error.message });
-  //   }
-  // }
+  @Get('/backendApi/all-users')
+  async getAllUsers(
+    @Res() res: Response,
+  ) {
+    try {
+      const data = await this.appService.getAllUsers();
+
+      return res.status(HttpStatus.OK).json(data);
+    } catch (error) {
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: error.message });
+    }
+  }
+
+  @Get('/backendApi/all-talleres')
+  async getAllTalleres(
+    @Res() res: Response,
+  ) {
+    try {
+      const data = await this.appService.getAllTalleres();
+
+      return res.status(HttpStatus.OK).json(data);
+    } catch (error) {
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: error.message });
+    }
+  }
+
+  @Post('/backendApi/set-taller-user')
+  async saveOrUpdateTallerToOneUser(
+    @Res() res: Response,
+    @Body() body: CrudUsuarioTalleres,
+  ) {
+    try {
+      const data = await this.appService.saveOrUpdateTallerToOneUser(body);
+      return res.status(HttpStatus.OK).json(data);
+    } catch (error) {
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: error.message });
+    }
+  }
 }
