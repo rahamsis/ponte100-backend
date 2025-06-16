@@ -649,7 +649,7 @@ export class AppService {
     const idExamen = body.index < 9 ? 'EXAM0000' + (body.index + 1) : 'EXAM000' + (body.index + 1);
 
     const results = await this.databaseService.executeQuery(`SELECT idPregunta FROM preguntas WHERE idExamen = ? 
-            ORDER BY idExamen, idTema, CAST(idPregunta AS UNSIGNED) LIMIT ? OFFSET ?`,
+            ORDER BY CAST(SUBSTRING(idExamen, 5) AS UNSIGNED), CAST(SUBSTRING(idTema, 3) AS UNSIGNED), CAST(idPregunta AS UNSIGNED) LIMIT ? OFFSET ?`,
       [idExamen, body.limit.toString(), body.offset.toString()]);
 
     const questionIds = results.map((q: { idPregunta: string }) => q.idPregunta);
@@ -670,7 +670,7 @@ export class AppService {
       INNER JOIN temas t ON t.idTema = p.idTema
       WHERE p.idPregunta IN (${placeholders})
       GROUP BY p.idPregunta
-      ORDER BY p.idExamen, p.idTema`, questionIds);
+      ORDER BY p.idExamen, p.idTema, CAST(p.idPregunta AS UNSIGNED)`, questionIds);
 
     return questions || null;
   }
