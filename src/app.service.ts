@@ -591,7 +591,8 @@ export class AppService {
       FROM taller t
       LEFT JOIN usuariotalleres ut on t.idTaller = ut.idTaller and ut.idUsuario = ?
       LEFT JOIN clase c on c.idTaller = t.idTaller
-      LEFT JOIN sesion s on s.idClase = c.idClase;`, [userId]);
+      LEFT JOIN sesion s on s.idClase = c.idClase
+      ORDER BY t.idTaller, c.idClase, s.idSesion;`, [userId]);
 
     const talleresMap = new Map();
 
