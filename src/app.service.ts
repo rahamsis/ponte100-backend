@@ -646,10 +646,11 @@ export class AppService {
   }
 
   async getQuestionsToTaller(body: any): Promise<any> {
-    const idExamen = body.index < 9 ? 'EXAM0000' + (body.index + 1) : 'EXAM000' + (body.index + 1);
+    const idExamen = body.index <= 9 ? 'EXAM0000' + body.index : 'EXAM000' + body.index;
 
-    const results = await this.databaseService.executeQuery(`SELECT idPregunta FROM preguntas WHERE idExamen = ? 
-            ORDER BY CAST(SUBSTRING(idExamen, 5) AS UNSIGNED), CAST(SUBSTRING(idTema, 3) AS UNSIGNED), CAST(idPregunta AS UNSIGNED) LIMIT ? OFFSET ?`,
+    const results = await this.databaseService.executeQuery(`SELECT idPregunta 
+      FROM preguntas WHERE idExamen = ? 
+      ORDER BY idExamen, idTema, CAST(idPregunta AS UNSIGNED) LIMIT ? OFFSET ?`,
       [idExamen, body.limit.toString(), body.offset.toString()]);
 
     const questionIds = results.map((q: { idPregunta: string }) => q.idPregunta);
