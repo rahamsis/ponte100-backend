@@ -675,6 +675,36 @@ export class AppService {
     return questions || null;
   }
 
+  async getQuestionsToDownloadToClase(idClase: string): Promise<any> {
+    const soloNumeros = idClase.replace(/\D/g, "");
+
+    const idExamen = Number(soloNumeros) < 9 ? 'EXAM0' + (soloNumeros) : 'EXAM' + (soloNumeros);
+    const results = await this.databaseService.executeQuery(`SELECT idPregunta FROM preguntas WHERE idExamen = ? 
+            ORDER BY idTema, CAST(idPregunta AS UNSIGNED)`,
+      [idExamen]);
+
+    const questionIds = results.map((q: { idPregunta: string }) => q.idPregunta);
+
+    // Crear placeholders seguros para evitar inyección SQL
+    const placeholders = questionIds.map(() => "?").join(", ");
+
+    const questions = await this.databaseService.executeQuery(`
+      SELECT p.idPregunta AS id, p.pregunta AS question, p.idTema, t.tema, p.ubicacion,
+      GROUP_CONCAT(CONCAT(a.idAlternativa, "@", a.alternativa) ORDER BY RAND() SEPARATOR '||') AS options, 
+      (SELECT a2.idAlternativa 
+          FROM alternativas a2 
+          WHERE a2.idPregunta = p.idPregunta AND a2.respuesta = 1 LIMIT 1
+      ) AS correctAnswer 
+      FROM preguntas p 
+      INNER JOIN alternativas a ON a.idPregunta = p.idPregunta
+      INNER JOIN temas t ON t.idTema = p.idTema
+      WHERE p.idPregunta IN (${placeholders})
+      GROUP BY p.idPregunta
+      ORDER BY p.idTema`, questionIds);
+
+    return questions || null;
+  }
+
   async getProgressResult(body: ProgressResultDto): Promise<any> {
 
     // las incorrectas lo saco de la cantidad de la tabla fallidas ya que no hay forma de 
@@ -775,10 +805,10 @@ export class AppService {
       const result = await this.databaseService.executeQuery(
         `UPDATE usuariotalleres set activo = ?, idUsuarioRegistro = ?, updatedDate = NOW()
         WHERE idUsuario = ? and idTaller = ?`,
-        [body.activo,, body.idUsuarioregistro, body.idUsuario, body.idTaller]
+        [body.activo, , body.idUsuarioregistro, body.idUsuario, body.idTaller]
       );
 
-      return { message: 'usuarioTalleres updated successfully'};
+      return { message: 'usuarioTalleres updated successfully' };
     } else {
 
       // Insertar nuevo progreso
@@ -788,7 +818,7 @@ export class AppService {
         [body.idUsuario, body.idTaller, body.activo, body.idUsuarioregistro]
       );
 
-      return { message: 'usuariotalleres saved successfully'};
+      return { message: 'usuariotalleres saved successfully' };
     }
   }
 

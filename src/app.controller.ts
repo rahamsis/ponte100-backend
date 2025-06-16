@@ -378,6 +378,20 @@ export class AppController {
     }
   }
 
+  @Get('/backendApi/download-questions-clase')
+  async getQuestionsToDownloadToClase(
+    @Query('idClase') idClase: string,
+    @Res() res: Response,
+  ) {
+    try {
+      const data = await this.appService.getQuestionsToDownloadToClase(idClase);
+
+      return res.status(HttpStatus.OK).json(data);
+    } catch (error) {
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: error.message });
+    }
+  }
+
   @Post('/backendApi/progress-result')
   async getProgressResult(
     @Res() res: Response,
