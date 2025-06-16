@@ -12,7 +12,7 @@ import { ZoomService } from 'zoom/zoom.service';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true, envFilePath: '.env.local' }),
+    ConfigModule.forRoot({ isGlobal: true, envFilePath: '.env' }),
     DatabaseModule,
     HttpModule,
     PaymentModule,
