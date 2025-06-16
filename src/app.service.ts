@@ -670,7 +670,7 @@ export class AppService {
       INNER JOIN temas t ON t.idTema = p.idTema
       WHERE p.idPregunta IN (${placeholders})
       GROUP BY p.idPregunta
-      ORDER BY p.idTema`, questionIds);
+      ORDER BY p.idExamen, p.idTema, CAST(p.idPregunta AS UNSIGNED)`, questionIds);
 
     return questions || null;
   }
@@ -700,7 +700,7 @@ export class AppService {
       INNER JOIN temas t ON t.idTema = p.idTema
       WHERE p.idPregunta IN (${placeholders})
       GROUP BY p.idPregunta
-      ORDER BY p.idTema`, questionIds);
+      ORDER BY p.idExamen, p.idTema, CAST(p.idPregunta AS UNSIGNED)`, questionIds);
 
     return questions || null;
   }
