@@ -656,6 +656,7 @@ export class AppService {
 
     // Crear placeholders seguros para evitar inyección SQL
     const placeholders = questionIds.map(() => "?").join(", ");
+    const fieldOrdering = `FIELD(p.idPregunta, ${questionIds.map(() => "?").join(", ")})`;
 
     // Traer los detalles de esas preguntas y sus respuestas
     const questions = await this.databaseService.executeQuery(`
@@ -670,7 +671,7 @@ export class AppService {
       INNER JOIN temas t ON t.idTema = p.idTema
       WHERE p.idPregunta IN (${placeholders})
       GROUP BY p.idPregunta
-      ORDER BY p.idExamen, p.idTema, CAST(p.idPregunta AS UNSIGNED)`, questionIds);
+      ORDER BY ${fieldOrdering}`, [...questionIds, ...questionIds]);
 
     return questions || null;
   }
