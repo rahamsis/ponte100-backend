@@ -7,15 +7,18 @@ import { AppService } from './app.service';
 import { PaymentService } from './payment/payment.service';
 import { DatabaseModule } from './database/database.module';
 import { PaymentModule } from './payment/payment.module';
+import { ZoomModule } from 'zoom/zoom.module';
+import { ZoomService } from 'zoom/zoom.service';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true, envFilePath: '.env' }),
+    ConfigModule.forRoot({ isGlobal: true, envFilePath: '.env.local' }),
     DatabaseModule,
     HttpModule,
     PaymentModule,
+    ZoomModule
   ],
   controllers: [AppController, CloudinaryController],
-  providers: [AppService, PaymentService],
+  providers: [AppService, PaymentService, ZoomService],
 })
 export class AppModule {}
