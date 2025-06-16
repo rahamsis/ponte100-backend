@@ -745,7 +745,7 @@ export class AppService {
   }
 
   async getAllUsers(): Promise<any> {
-    const users = await this.databaseService.executeQuery(`SELECT userId, nombre, apellidos, email 
+    const users = await this.databaseService.executeQuery(`SELECT userId, nombre, apellidos, email, telefono
       FROM users`);
 
     return users || null;
