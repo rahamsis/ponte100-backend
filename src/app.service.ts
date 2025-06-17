@@ -689,19 +689,39 @@ export class AppService {
     // Crear placeholders seguros para evitar inyección SQL
     const placeholders = questionIds.map(() => "?").join(", ");
 
+    // const questions = await this.databaseService.executeQuery(`
+    //   SELECT p.idPregunta AS id, p.pregunta AS question, p.idTema, t.tema, p.ubicacion,
+    //   GROUP_CONCAT(CONCAT(a.idAlternativa, "@", a.alternativa) ORDER BY RAND() SEPARATOR '||') AS options, 
+    //   (SELECT a2.idAlternativa 
+    //       FROM alternativas a2 
+    //       WHERE a2.idPregunta = p.idPregunta AND a2.respuesta = 1 LIMIT 1
+    //   ) AS correctAnswer 
+    //   FROM preguntas p 
+    //   INNER JOIN alternativas a ON a.idPregunta = p.idPregunta
+    //   INNER JOIN temas t ON t.idTema = p.idTema
+    //   WHERE p.idPregunta IN (${placeholders})
+    //   GROUP BY p.idPregunta
+    //   ORDER BY p.idExamen, p.idTema, CAST(p.idPregunta AS UNSIGNED)`, questionIds);
+
     const questions = await this.databaseService.executeQuery(`
       SELECT p.idPregunta AS id, p.pregunta AS question, p.idTema, t.tema, p.ubicacion,
       GROUP_CONCAT(CONCAT(a.idAlternativa, "@", a.alternativa) ORDER BY RAND() SEPARATOR '||') AS options, 
       (SELECT a2.idAlternativa 
           FROM alternativas a2 
           WHERE a2.idPregunta = p.idPregunta AND a2.respuesta = 1 LIMIT 1
-      ) AS correctAnswer 
+      ) AS correctAnswer,
+      pc.clave 
       FROM preguntas p 
       INNER JOIN alternativas a ON a.idPregunta = p.idPregunta
       INNER JOIN temas t ON t.idTema = p.idTema
+      LEFT JOIN (
+        SELECT idPregunta, GROUP_CONCAT(palabra SEPARATOR '||') AS clave 
+        FROM palabrasclaves 
+        GROUP BY idPregunta
+      ) pc ON pc.idPregunta = p.idPregunta
       WHERE p.idPregunta IN (${placeholders})
       GROUP BY p.idPregunta
-      ORDER BY p.idExamen, p.idTema, CAST(p.idPregunta AS UNSIGNED)`, questionIds);
+      ORDER BY p.idExamen, p.idTema, CAST(p.idPregunta AS UNSIGNED)`, questionIds)
 
     return questions || null;
   }
