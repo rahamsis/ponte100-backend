@@ -677,9 +677,9 @@ export class AppService {
   }
 
   async getQuestionsToDownloadToClase(idClase: string): Promise<any> {
+    
     const soloNumeros = idClase.replace(/\D/g, "");
-
-    const idExamen = Number(soloNumeros) < 9 ? 'EXAM0' + (soloNumeros) : 'EXAM' + (soloNumeros);
+    const idExamen = 'EXAM0' + (soloNumeros);
     const results = await this.databaseService.executeQuery(`SELECT idPregunta FROM preguntas WHERE idExamen = ? 
             ORDER BY idExamen, idTema, CAST(idPregunta AS UNSIGNED)`,
       [idExamen]);
