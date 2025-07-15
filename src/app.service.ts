@@ -801,7 +801,7 @@ export class AppService {
       u.idGrado, g.nombreGrado, u.email, u.telefono, u.cip, u.dni, u.username, u.idPerfil, p.nombrePerfil
       FROM users u
       LEFT JOIN grados g on g.idGrado = u.idGrado
-      LEFT JOIN perfil P ON P.idPerfil = u.idPerfil;`,);
+      LEFT JOIN perfil p ON p.idPerfil = u.idPerfil;`,);
 
     return users || null;
   }
