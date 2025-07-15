@@ -104,3 +104,16 @@ export class CrudUsuarioTalleres {
   activo: boolean;
   idUsuarioregistro: string;
 }
+
+export class CrudUsuario {
+  nombre: string;
+  apellidos: string;
+  email: string;
+  telefono: string;
+  cip: string;
+  dni: string;
+  idGrado: string;
+  genero: string;
+  username: string;
+  password: string;
+}
