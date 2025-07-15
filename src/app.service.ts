@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { DatabaseService } from './database/database.service';
 import {
-  BodyDto, CrudProgress, CrudQuestionsDto, CrudUsuarioTalleres, IncorrectQuestionsDto,
+  BodyDto, CrudProgress, CrudQuestionsDto, CrudUsuario, CrudUsuarioTalleres, IncorrectQuestionsDto,
   ProgressResultDto, SessionDto, SessionTokenDto, UpdateProfileUserDto,
   UpdateUserDeleteVerification, ValidatePersonDto, VerificationTokenDto
 } from './dto/body.dto';
@@ -677,7 +677,7 @@ export class AppService {
   }
 
   async getQuestionsToDownloadToClase(idClase: string): Promise<any> {
-    
+
     const soloNumeros = idClase.replace(/\D/g, "");
     const idExamen = 'EXAM0' + (soloNumeros);
     const results = await this.databaseService.executeQuery(`SELECT idPregunta FROM preguntas WHERE idExamen = ? 
@@ -797,8 +797,11 @@ export class AppService {
   }
 
   async getAllUsers(): Promise<any> {
-    const users = await this.databaseService.executeQuery(`SELECT userId, nombre, apellidos, email, telefono
-      FROM users`);
+    const users = await this.databaseService.executeQuery(`SELECT u.userId, u.nombre, u.apellidos, u.genero, 
+      u.idGrado, g.nombreGrado, u.email, u.telefono, u.cip, u.dni, u.username, u.idPerfil, p.nombrePerfil
+      FROM users u
+      LEFT JOIN grados g on g.idGrado = u.idGrado
+      LEFT JOIN perfil P ON P.idPerfil = u.idPerfil;`,);
 
     return users || null;
   }
@@ -843,4 +846,51 @@ export class AppService {
     }
   }
 
+  async registerUser(body: CrudUsuario): Promise<any> {
+    // Buscar qué progreso ya existen
+    const existingRecords = await this.databaseService.executeQuery(
+      `SELECT * FROM users WHERE email = ?`,
+      [body.email]);
+
+    if (existingRecords.length > 0) {
+      // return { message: 'existe usuario registrado con correo: ' + body.email };
+      throw new Error('existe usuario registrado con correo: ' + body.email);
+    } else {
+      const idUsuario = uuidv4()
+      const passwordHashed = await bcrypt.hash(body.password, 10)
+
+      // Insertar nuevo progreso
+      const result = await this.databaseService.executeQuery(
+        `INSERT INTO users (userId, nombre, apellidos, genero, idGrado, email, telefono, password,
+        cip, dni, verified, username, welcome, fechaCreacion, fechaActualizacion, idPerfil)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, 1, NOW(), NOW(), 'PF0003')`,
+        [idUsuario,
+          body.nombre,
+          body.apellidos,
+          body.genero,
+          body.idGrado,
+          body.email,
+          body.telefono,
+          passwordHashed,
+          body.cip,
+          body.dni,
+          body.username]
+      );
+
+      return { ok: true };
+    }
+  }
+
+  async resetPassword(body: { password: string, userId: string }): Promise<any> {
+
+    const passwordHashed = await bcrypt.hash(body.password, 10)
+
+    // Insertar nuevo progreso
+    const result = await this.databaseService.executeQuery(
+      `UPDATE users set password = ?, fechaActualizacion = NOW()
+        WHERE userId = ?`,
+      [passwordHashed, body.userId]);
+
+    return { ok: true };
+  }
 }

@@ -5,7 +5,8 @@ import {
   BodyDto, CrudQuestionsDto, IncorrectQuestionsDto, ProgressResultDto,
   SessionDto, SessionTokenDto, UpdateProfileUserDto, UpdateUserDeleteVerification,
   ValidatePersonDto, VerificationTokenDto, CrudProgress,
-  CrudUsuarioTalleres
+  CrudUsuarioTalleres,
+  CrudUsuario
 } from './dto/body.dto';
 import { Response } from 'express';
 
@@ -479,6 +480,32 @@ export class AppController {
   ) {
     try {
       const data = await this.appService.saveOrUpdateTallerToOneUser(body);
+      return res.status(HttpStatus.OK).json(data);
+    } catch (error) {
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: error.message });
+    }
+  }
+
+  @Post('/backendApi/adding-user')
+  async registerUser(
+    @Res() res: Response,
+    @Body() body: CrudUsuario,
+  ) {
+    try {
+      const data = await this.appService.registerUser(body);
+      return res.status(HttpStatus.OK).json(data);
+    } catch (error) {
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: error.message });
+    }
+  }
+
+  @Post('/backendApi/reset-password')
+  async resetPassword(
+    @Res() res: Response,
+    @Body() body: {password: string, userId: string},
+  ) {
+    try {
+      const data = await this.appService.resetPassword(body);
       return res.status(HttpStatus.OK).json(data);
     } catch (error) {
       res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: error.message });
