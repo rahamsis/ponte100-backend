@@ -473,7 +473,21 @@ export class AppController {
     }
   }
 
-  @Post('/backendApi/set-taller-user')
+  @Get('/backendApi/all-talleres-by-userId')
+  async getAllTalleresByUserId(
+    @Query('userId') userId: string,
+    @Res() res: Response,
+  ) {
+    try {
+      const data = await this.appService.getAllTalleresByUserId(userId);
+
+      return res.status(HttpStatus.OK).json(data);
+    } catch (error) {
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: error.message });
+    }
+  }
+
+  @Post('/backendApi/usuarioTaller-update')
   async saveOrUpdateTallerToOneUser(
     @Res() res: Response,
     @Body() body: CrudUsuarioTalleres,

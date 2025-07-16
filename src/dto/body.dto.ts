@@ -99,9 +99,8 @@ export class CrudProgress {
 }
 
 export class CrudUsuarioTalleres {
-  idUsuario: string;
-  idTaller: string;
-  activo: boolean;
+  userId: string;
+  datos: { idTaller: string; estado: number }[];
   idUsuarioregistro: string;
 }
 
