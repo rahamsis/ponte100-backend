@@ -815,7 +815,7 @@ export class AppService {
   async getAllTalleresByUserId(userId: string): Promise<any> {
     const response = await this.databaseService.executeQuery(`SELECT idUsuario, idTaller, activo 
       FROM usuariotalleres
-      WHERE idusuario = ? and activo = 1`, [userId]);
+      WHERE idUsuario = ? and activo = 1`, [userId]);
 
     return response || null;
   }
