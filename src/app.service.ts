@@ -812,38 +812,46 @@ export class AppService {
     return talleres || null;
   }
 
+  async getAllTalleresByUserId(userId: string): Promise<any> {
+    const response = await this.databaseService.executeQuery(`SELECT idUsuario, idTaller, activo 
+      FROM usuariotalleres
+      WHERE idusuario = ? and activo = 1`, [userId]);
+
+    return response || null;
+  }
+
   async saveOrUpdateTallerToOneUser(body: CrudUsuarioTalleres): Promise<any> {
-    if (!body.idTaller || body.idUsuario.length === 0) {
-      return { message: 'No taller to save' };
+    if (body.userId.length === 0) {
+      return { message: 'No userId for taller to save' };
     }
 
-    // Buscar qué progreso ya existen
-    const existingRecords = await this.databaseService.executeQuery(
-      `SELECT * FROM usuariotalleres WHERE idUsuario = ? and idTaller = ?`,
-      [body.idUsuario, body.idTaller]);
-
-    if (existingRecords.length > 0) {
-      const existing = existingRecords[0];
-
-      // Actualizar el progreso existente
-      const result = await this.databaseService.executeQuery(
-        `UPDATE usuariotalleres set activo = ?, idUsuarioRegistro = ?, updatedDate = NOW()
-        WHERE idUsuario = ? and idTaller = ?`,
-        [body.activo, , body.idUsuarioregistro, body.idUsuario, body.idTaller]
+    for (const dato of body.datos) {
+      const { idTaller, estado } = dato;
+      const existingRecords = await this.databaseService.executeQuery(
+        `SELECT * FROM usuariotalleres WHERE idUsuario = ? AND idTaller = ?`,
+        [body.userId, idTaller]
       );
 
-      return { message: 'usuarioTalleres updated successfully' };
-    } else {
-
-      // Insertar nuevo progreso
-      const result = await this.databaseService.executeQuery(
-        `INSERT INTO usuariotalleres (idUsuario, idTaller, activo, idusuarioregistro, createdDate, updatedDate)
-        VALUES (?, ?, ?, ?, NOW(), NOW())`,
-        [body.idUsuario, body.idTaller, body.activo, body.idUsuarioregistro]
-      );
-
-      return { message: 'usuariotalleres saved successfully' };
+      if (existingRecords.length > 0) {
+        // Ya existe: actualiza el registro
+        await this.databaseService.executeQuery(
+          `UPDATE usuariotalleres
+          SET activo = ?, idUsuarioRegistro = ?, updatedDate = NOW()
+          WHERE idUsuario = ? AND idTaller = ?`,
+          [estado, body.idUsuarioregistro, body.userId, idTaller]
+        );
+      } else {
+        // No existe: inserta nuevo registro
+        await this.databaseService.executeQuery(
+          `INSERT INTO usuariotalleres (idUsuario, idTaller, activo, idUsuarioRegistro, createdDate, updatedDate)
+          VALUES (?, ?, ?, ?, NOW(), NOW())`,
+          [body.userId, idTaller, estado, body.idUsuarioregistro]
+        );
+      }
     }
+
+    return { message: 'usuarioTalleres procesado correctamente' };
+
   }
 
   async registerUser(body: CrudUsuario): Promise<any> {
