@@ -516,10 +516,63 @@ export class AppController {
   @Post('/backendApi/reset-password')
   async resetPassword(
     @Res() res: Response,
-    @Body() body: {password: string, userId: string},
+    @Body() body: { password: string, userId: string },
   ) {
     try {
       const data = await this.appService.resetPassword(body);
+      return res.status(HttpStatus.OK).json(data);
+    } catch (error) {
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: error.message });
+    }
+  }
+
+  @Get('/backendApi/complete-Question-By-Idpregunta')
+  async getCompleteQuestionById(
+    @Query('idPregunta') idPregunta: string,
+    @Res() res: Response,
+  ) {
+    try {
+      const data = await this.appService.getCompleteQuestionById(idPregunta);
+
+      return res.status(HttpStatus.OK).json(data);
+    } catch (error) {
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: error.message });
+    }
+  }
+
+  @Post('/backendApi/update-pregunta')
+  async updatePregunta(
+    @Res() res: Response,
+    @Body() body: { idPregunta: string, pregunta: string },
+  ) {
+    try {
+      const data = await this.appService.updatePregunta(body);
+      return res.status(HttpStatus.OK).json(data);
+    } catch (error) {
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: error.message });
+    }
+  }
+
+  @Post('/backendApi/update-alternativa')
+  async updateAlternativa(
+    @Res() res: Response,
+    @Body() body: { idAlternativa: string, alternativa: string },
+  ) {
+    try {
+      const data = await this.appService.updateAlternativa(body);
+      return res.status(HttpStatus.OK).json(data);
+    } catch (error) {
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: error.message });
+    }
+  }
+
+  @Post('/backendApi/update-clave')
+  async updateClave(
+    @Res() res: Response,
+    @Body() body: { idPalabra: string, palabra: string },
+  ) {
+    try {
+      const data = await this.appService.updateClave(body);
       return res.status(HttpStatus.OK).json(data);
     } catch (error) {
       res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: error.message });

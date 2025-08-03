@@ -901,4 +901,64 @@ export class AppService {
 
     return { ok: true };
   }
+
+  async getCompleteQuestionById(idPregunta: string) {
+    const response = await this.databaseService.executeQuery(`
+    SELECT JSON_OBJECT(
+      'idPregunta', p.idPregunta,
+      'pregunta', p.pregunta,
+      'alternativas', (
+        SELECT JSON_ARRAYAGG(
+          JSON_OBJECT(
+            'idAlternativa', a.idAlternativa,
+            'alternativa', a.alternativa,
+            'respuesta', a.respuesta
+          )
+        )
+        FROM alternativas a
+        WHERE a.idPregunta = p.idPregunta
+      ),
+      'claves', (
+        SELECT JSON_ARRAYAGG(
+          JSON_OBJECT(
+            'idPalabra', pc.idPalabra,
+            'palabra', pc.palabra
+          )
+        )
+        FROM palabrasclaves pc
+        WHERE pc.idPregunta = p.idPregunta
+      )
+    ) AS data
+    FROM preguntas p
+    WHERE p.idPregunta = ?;`, [idPregunta]);
+
+    return response || null;
+  }
+
+  async updatePregunta(body: { idPregunta: string, pregunta: string }): Promise<{ ok: boolean }> {
+    const result = await this.databaseService.executeQuery(
+      `UPDATE preguntas set pregunta = ?
+        WHERE idPregunta = ?`,
+      [body.pregunta, body.idPregunta]);
+
+    return { ok: result.affectedRows > 0 };
+  }
+
+  async updateAlternativa(body: { idAlternativa: string, alternativa: string }): Promise<{ ok: boolean }> {
+    const result = await this.databaseService.executeQuery(
+      `UPDATE alternativas set alternativa = ?
+        WHERE idAlternativa = ?`,
+      [body.alternativa, body.idAlternativa]);
+
+    return { ok: result.affectedRows > 0 };
+  }
+
+  async updateClave(body: { idPalabra: string, palabra: string }): Promise<{ ok: boolean }> {
+    const result = await this.databaseService.executeQuery(
+      `UPDATE palabrasclaves set palabra = ?
+        WHERE idPalabra = ?`,
+      [body.palabra, body.idPalabra]);
+
+    return { ok: result.affectedRows > 0 };
+  }
 }
