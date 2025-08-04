@@ -578,4 +578,18 @@ export class AppController {
       res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: error.message });
     }
   }
+
+  @Get('/backendApi/all-data-questions')
+  async getAllDataQuestions(
+    @Query('filtro') filtro: string,
+    @Res() res: Response,
+  ) {
+    try {
+      const data = await this.appService.getAllDataQuestions(filtro);
+
+      return res.status(HttpStatus.OK).json(data);
+    } catch (error) {
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: error.message });
+    }
+  }
 }

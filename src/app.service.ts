@@ -961,4 +961,52 @@ export class AppService {
 
     return { ok: result.affectedRows > 0 };
   }
+
+  async getAllDataQuestions(filtro: string): Promise<any> {
+    const result = await this.databaseService.executeQuery(
+      `SELECT 
+        p.pregunta, 
+        MAX(CASE WHEN a_orden.row_num = 1 THEN a_orden.alternativa END) AS alternativa_a,
+        MAX(CASE WHEN a_orden.row_num = 2 THEN a_orden.alternativa END) AS alternativa_b,
+        MAX(CASE WHEN a_orden.row_num = 3 THEN a_orden.alternativa END) AS alternativa_c,
+        MAX(CASE WHEN a_orden.row_num = 4 THEN a_orden.alternativa END) AS alternativa_d,
+        MAX(CASE WHEN a_orden.row_num = 5 THEN a_orden.alternativa END) AS alternativa_e,
+        
+        MAX(CASE WHEN a_orden.respuesta = 1 THEN a_orden.alternativa END) AS respuesta,
+        
+        MAX(CASE WHEN pc_orden.row_num = 1 THEN pc_orden.palabra END) AS clave_pregunta,
+        MAX(CASE WHEN pc_orden.row_num = 2 THEN pc_orden.palabra END) AS clave_respuesta,
+
+        p.idPregunta AS codigo,
+        p.ubicacion,
+        t.tema as asignatura
+      FROM preguntas p
+      INNER JOIN temas t ON t.idTema = p.idTema
+      INNER JOIN (
+        SELECT 
+          a.*,
+          ROW_NUMBER() OVER (PARTITION BY a.idPregunta ORDER BY a.idAlternativa) AS row_num
+        FROM alternativas a
+      ) a_orden ON a_orden.idPregunta = p.idPregunta
+      INNER JOIN (
+        SELECT
+          pc.*,
+          ROW_NUMBER() OVER (PARTITION BY pc.idPregunta ORDER BY pc.idPalabra) AS row_num
+        FROM palabrasclaves pc
+      ) pc_orden ON pc_orden.idPregunta = p.idPregunta
+      WHERE 
+        (
+          (CAST(? AS CHAR) REGEXP '^[0-9]+$' AND p.idPregunta = ?)
+          OR
+          (CAST(? AS CHAR) NOT REGEXP '^[0-9]+$' AND (
+            p.pregunta LIKE CONCAT('%', ?, '%') 
+            OR pc_orden.palabra LIKE CONCAT('%', ?, '%')
+            OR t.tema LIKE CONCAT('%', ?, '%'))
+          )
+        )
+      GROUP BY p.idPregunta, p.pregunta, p.ubicacion, t.tema;`,
+      [filtro, filtro, filtro, filtro, filtro, filtro]);
+
+    return result || null;
+  }
 }
