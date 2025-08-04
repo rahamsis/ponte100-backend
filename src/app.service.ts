@@ -346,8 +346,9 @@ export class AppService {
 
   async getQuestionsSiecopolExamNoRepeat(idExamen: string): Promise<any> {
 
-    const results = await this.databaseService.executeQuery(`SELECT idPregunta FROM preguntas WHERE idExamen = ? 
-            ORDER BY CAST(idPregunta AS UNSIGNED)`, [idExamen]);
+    const results = await this.databaseService.executeQuery(`SELECT idPregunta 
+      FROM preguntas WHERE idExamen = ? 
+      ORDER BY idExamen, idTema, CAST(idPregunta AS UNSIGNED)`, [idExamen]);
 
     const questionIds = results.map((q: { idPregunta: string }) => q.idPregunta);
 
@@ -367,7 +368,7 @@ export class AppService {
       INNER JOIN temas t ON t.idTema = p.idTema
       WHERE p.idPregunta IN (${placeholders})
       GROUP BY p.idPregunta
-      ORDER BY p.idTema`, questionIds);
+      ORDER BY p.idExamen, p.idTema, CAST(p.idPregunta AS UNSIGNED)`, questionIds);
 
     return questions || null;
   }
