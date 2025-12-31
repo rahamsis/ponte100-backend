@@ -31,7 +31,7 @@ export class PaymentService {
             });
 
             const result = await response.json();
-            console.log("RESULT: ", result)
+            // console.log("RESULT: ", result)
 
             if (!response.ok) {
                 // Culqi devolvió error
