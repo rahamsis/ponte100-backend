@@ -1,5 +1,6 @@
 import { Injectable, OnModuleInit, InternalServerErrorException } from '@nestjs/common';
 import * as B2 from 'backblaze-b2';
+import { PDFItem, VideoItem } from 'src/dto/backblaze.dt';
 
 @Injectable()
 export class BackblazeService implements OnModuleInit {
@@ -27,22 +28,28 @@ export class BackblazeService implements OnModuleInit {
         }
     }
 
-    async getSignedDownloadUrl(fileName: string, expiresInSeconds = 600,): Promise<string> {
+    // Stream de cualquier archivo del bucket
+    async getFileStream(filePath: string): Promise<NodeJS.ReadableStream> {
         try {
-            // console.log('Generando URL firmada para:', fileName);
             const auth = await this.b2.getDownloadAuthorization({
                 bucketId: this.bucketId,
-                fileNamePrefix: fileName,
-                validDurationInSeconds: expiresInSeconds,
+                fileNamePrefix: filePath,
+                validDurationInSeconds: 600,
             });
 
-            return `${this.downloadUrl}/file/${this.bucketName}/${fileName}?Authorization=${auth.data.authorizationToken}`;
-        } catch {
-            throw new InternalServerErrorException('Error generando URL firmada');
+            const url = `${this.downloadUrl}/${filePath}?Authorization=${auth.data.authorizationToken}`;
+            const response = await fetch(url);
+
+            if (!response.ok) throw new Error('Error descargando archivo de B2');
+            if (!response.body) throw new Error('No se pudo obtener el stream del archivo');
+
+            return response.body as unknown as NodeJS.ReadableStream; // casteamos a NodeJS.ReadableStream
+        } catch (error) {
+            throw new InternalServerErrorException(error.message);
         }
     }
 
-    async listVideos(): Promise<{ name: string; url: string }[]> {
+    async listVideos(): Promise<VideoItem[]> {
         try {
             const files = await this.b2.listFileNames({
                 bucketId: this.bucketId,
@@ -63,7 +70,7 @@ export class BackblazeService implements OnModuleInit {
                         url: `${this.downloadUrl}/file/${this.bucketName}/${file.fileName}?Authorization=${auth.data.authorizationToken}`,
                         createdAt: new Date(file.uploadTimestamp).toISOString(),
                         author: file.fileInfo?.author ?? "Desconocido",
-                        poster:"https://res.cloudinary.com/dqboodjqt/image/upload/v1750965563/video_p4yf6c.png"
+                        poster: "https://res.cloudinary.com/dqboodjqt/image/upload/v1750965563/video_p4yf6c.png"
                     };
                 }),
             );
@@ -74,4 +81,95 @@ export class BackblazeService implements OnModuleInit {
         }
     }
 
+    async listPDFs(): Promise<PDFItem[]> {
+        try {
+            // 1. Listamos PDFs y covers en paralelo
+            const [pdfFiles, coverFiles] = await Promise.all([
+                this.b2.listFileNames({
+                    bucketId: this.bucketId,
+                    prefix: 'banco-preguntas/',
+                    maxFileCount: 1000,
+                }),
+                this.b2.listFileNames({
+                    bucketId: this.bucketId,
+                    prefix: 'covers/',
+                    maxFileCount: 1000,
+                }),
+            ]);
+
+            // 2. Creamos mapa de portadas con el nombre base
+            const coverMap: Record<string, string> = {};
+            for (const file of coverFiles.data.files) {
+                const baseName = file.fileName.split('/').pop()?.replace(/\.(png|jpg|jpeg)$/, '');
+                if (!baseName) continue;
+
+                // URL usando tu backend como proxy
+                coverMap[baseName] = `http://localhost:3000/pdf/cover/${encodeURIComponent(baseName)}`;
+            }
+
+            // 3. Generamos listado final de PDFs con su cover correspondiente
+            const pdfs: PDFItem[] = [];
+            for (const file of pdfFiles.data.files) {
+                const baseName = file.fileName.split('/').pop()?.replace(/\.pdf$/, '');
+                if (!baseName) continue;
+
+                // URL usando tu backend como proxy
+                pdfs.push({
+                    name: file.fileName,
+                    url: `http://localhost:3000/pdf/file${encodeURIComponent(file.fileName)}`,
+                    poster: coverMap[baseName] || "null",
+                });
+            }
+
+            return pdfs;
+        } catch (error) {
+            throw new InternalServerErrorException('Error listando PDFs');
+        }
+    }
+
+    async listNormas(): Promise<PDFItem[]> {
+        try {
+            // 1. Listamos PDFs y covers en paralelo
+            const [pdfFiles, coverFiles] = await Promise.all([
+                this.b2.listFileNames({
+                    bucketId: this.bucketId,
+                    prefix: 'normas/',
+                    maxFileCount: 1000,
+                }),
+                this.b2.listFileNames({
+                    bucketId: this.bucketId,
+                    prefix: 'covers/',
+                    maxFileCount: 1000,
+                }),
+            ]);
+
+            // 2. Creamos mapa de portadas con el nombre base
+            const coverMap: Record<string, string> = {};
+            for (const file of coverFiles.data.files) {
+                const baseName = file.fileName.split('/').pop()?.replace(/\.(png|jpg|jpeg)$/, '');
+                if (!baseName) continue;
+
+                // URL usando tu backend como proxy
+                coverMap[baseName] = `http://localhost:3000/pdf/cover/${encodeURIComponent(baseName)}`;
+            }
+
+            // 3. Generamos listado final de PDFs con su cover correspondiente
+            const pdfs: PDFItem[] = [];
+            for (const file of pdfFiles.data.files) {
+                const baseName = file.fileName.split('/').pop()?.replace(/\.pdf$/, '');
+                if (!baseName) continue;
+
+                // URL usando tu backend como proxy
+                pdfs.push({
+                    name: file.fileName,
+                    url: `http://localhost:3000/pdf/file/${encodeURIComponent(file.fileName)}`,
+                    poster: coverMap[baseName] || "null",
+                });
+            }
+
+            return pdfs;
+        } catch (error) {
+            throw new InternalServerErrorException('Error listando PDFs normas');
+        }
+    }
 }
