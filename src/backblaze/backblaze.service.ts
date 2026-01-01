@@ -1,6 +1,7 @@
-import { Injectable, OnModuleInit, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, OnModuleInit, InternalServerErrorException, StreamableFile } from '@nestjs/common';
 import * as B2 from 'backblaze-b2';
 import { PDFItem, VideoItem } from 'src/dto/backblaze.dt';
+import { Readable } from 'stream';
 
 @Injectable()
 export class BackblazeService implements OnModuleInit {
@@ -8,6 +9,7 @@ export class BackblazeService implements OnModuleInit {
     private bucketId: string;
     private bucketName: string;
     private downloadUrl: string;
+    private authorized: boolean = false;
 
     constructor() {
         this.b2 = new (B2 as any)({
@@ -48,40 +50,35 @@ export class BackblazeService implements OnModuleInit {
     //         throw new InternalServerErrorException(error.message);
     //     }
     // }
-    async getFileStream(filePath: string): Promise<NodeJS.ReadableStream> {
+    async getFileStream(filePath: string): Promise<Readable> {
         try {
-            console.log('Buscando archivo:', filePath);
+            if (!this.authorized) {
+                await this.b2.authorize();
+                this.authorized = true;
+            }
 
-            // Primero necesitamos obtener el fileId
             const fileList = await this.b2.listFileNames({
                 bucketId: this.bucketId,
                 prefix: filePath,
-                maxFileCount: 1
+                maxFileCount: 1,
             });
 
-            if (!fileList.data.files || fileList.data.files.length === 0) {
-                throw new Error(`Archivo no encontrado: ${filePath}`);
+            if (!fileList.data.files.length) {
+                throw new Error('Archivo no encontrado');
             }
 
-            const fileInfo = fileList.data.files[0];
-            console.log('FileInfo encontrado:', fileInfo);
+            const fileId = fileList.data.files[0].fileId;
 
-            // Ahora descargamos usando el fileId
-            const downloadResponse = await this.b2.downloadFileById({
-                fileId: fileInfo.fileId
+            // 👇 Backblaze devuelve un stream REAL
+            const response = await this.b2.downloadFileById({
+                fileId,
+                responseType: 'stream',
             });
 
-            // Crear un stream a partir de la respuesta
-            const { Readable } = await import('stream');
-            const stream = new Readable();
-            stream.push(downloadResponse.data);
-            stream.push(null); // Indica el final del stream
-
-            return stream;
-
+            return response.data; // ← stream nativo
         } catch (error) {
-            console.error('Error en getFileStream:', error);
-            throw new InternalServerErrorException(`Error obteniendo archivo: ${error.message}`);
+            console.error(error);
+            throw new InternalServerErrorException('Error descargando archivo');
         }
     }
 

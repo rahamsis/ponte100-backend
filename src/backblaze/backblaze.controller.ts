@@ -1,4 +1,4 @@
-import { Controller, Get, HttpStatus, HttpException, Param, Res } from '@nestjs/common';
+import { Controller, Get, HttpStatus, HttpException, Param, Res, StreamableFile } from '@nestjs/common';
 import { BackblazeService } from './backblaze.service';
 import { ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
@@ -22,7 +22,13 @@ export class BackblazeController {
                     : 'application/octet-stream';
 
             res.setHeader('Content-Type', contentType);
-            stream.pipe(res);
+            if (stream instanceof StreamableFile) {
+                (stream as StreamableFile).getStream().pipe(res);
+            } else if (typeof (stream as any)?.pipe === 'function') {
+                (stream as any).pipe(res);
+            } else {
+                res.send(stream);
+            }
         } catch (error) {
             res.status(HttpStatus.NOT_FOUND).json({ message: 'Cover no encontrado' });
         }
