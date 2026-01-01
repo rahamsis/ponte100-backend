@@ -88,11 +88,13 @@ export class BackblazeService implements OnModuleInit {
                 this.b2.listFileNames({
                     bucketId: this.bucketId,
                     prefix: 'banco-preguntas/',
+                    delimiter: '/', // Agregar delimitador
                     maxFileCount: 1000,
                 }),
                 this.b2.listFileNames({
                     bucketId: this.bucketId,
                     prefix: 'covers/',
+                    delimiter: '/',
                     maxFileCount: 1000,
                 }),
             ]);
@@ -102,23 +104,29 @@ export class BackblazeService implements OnModuleInit {
             // 2. Creamos mapa de portadas con el nombre base
             const coverMap: Record<string, string> = {};
             for (const file of coverFiles.data.files) {
-                const baseName = file.fileName.split('/').pop()?.replace(/\.(png|jpg|jpeg)$/, '');
-                if (!baseName) continue;
+                const fileName = file.fileName.split('/').pop(); // Nombre completo con extensión
+                if (!fileName) continue;
 
-                // URL usando tu backend como proxy
-                coverMap[baseName] = `${process.env.BACKEND_URL}/pdf/cover/${encodeURIComponent(baseName)}.png`;
+                // Extraer solo el nombre base (sin extensión)
+                const baseName = fileName.replace(/\.(png|jpg|jpeg)$/, '');
+
+                // URL usando tu backend como proxy - incluir el nombre completo del archivo
+                coverMap[baseName] = `${process.env.BACKEND_URL}/pdf/cover/${encodeURIComponent(fileName)}`;
             }
 
             // 3. Generamos listado final de PDFs con su cover correspondiente
             const pdfs: PDFItem[] = [];
             for (const file of pdfFiles.data.files) {
-                const baseName = file.fileName.split('/').pop()?.replace(/\.pdf$/, '');
-                if (!baseName) continue;
+                const fileName = file.fileName.split('/').pop(); // Nombre completo con extensión
+                if (!fileName || !fileName.endsWith('.pdf')) continue;
+
+                // Extraer solo el nombre base (sin .pdf)
+                const baseName = fileName.replace(/\.pdf$/, '');
 
                 // URL usando tu backend como proxy
                 pdfs.push({
-                    name: file.fileName,
-                    url: `${process.env.BACKEND_URL}/pdf/file/${bucket}/${encodeURIComponent(file.fileName)}`,
+                    name: fileName, // Solo el nombre del archivo
+                    url: `${process.env.BACKEND_URL}/pdf/file/${bucket}/${encodeURIComponent(fileName)}`,
                     poster: coverMap[baseName] || "null",
                 });
             }
@@ -136,11 +144,13 @@ export class BackblazeService implements OnModuleInit {
                 this.b2.listFileNames({
                     bucketId: this.bucketId,
                     prefix: 'normas/',
+                    delimiter: '/',
                     maxFileCount: 1000,
                 }),
                 this.b2.listFileNames({
                     bucketId: this.bucketId,
                     prefix: 'covers/',
+                    delimiter: '/',
                     maxFileCount: 1000,
                 }),
             ]);
@@ -150,23 +160,24 @@ export class BackblazeService implements OnModuleInit {
             // 2. Creamos mapa de portadas con el nombre base
             const coverMap: Record<string, string> = {};
             for (const file of coverFiles.data.files) {
-                const baseName = file.fileName.split('/').pop()?.replace(/\.(png|jpg|jpeg)$/, '');
-                if (!baseName) continue;
+                const fileName = file.fileName.split('/').pop();
+                if (!fileName) continue;
 
-                // URL usando tu backend como proxy
-                coverMap[baseName] = `${process.env.BACKEND_URL}/pdf/cover/${encodeURIComponent(baseName)}.png`;
+                const baseName = fileName.replace(/\.(png|jpg|jpeg)$/, '');
+                coverMap[baseName] = `${process.env.BACKEND_URL}/pdf/cover/${encodeURIComponent(fileName)}`;
             }
 
-            // 3. Generamos listado final de PDFs con su cover correspondiente
+            // 3. Generamos listado final de PDFs
             const pdfs: PDFItem[] = [];
             for (const file of pdfFiles.data.files) {
-                const baseName = file.fileName.split('/').pop()?.replace(/\.pdf$/, '');
-                if (!baseName) continue;
+                const fileName = file.fileName.split('/').pop();
+                if (!fileName || !fileName.endsWith('.pdf')) continue;
 
-                // URL usando tu backend como proxy
+                const baseName = fileName.replace(/\.pdf$/, '');
+
                 pdfs.push({
-                    name: file.fileName,
-                    url: `${process.env.BACKEND_URL}/pdf/file/${bucket}/${encodeURIComponent(file.fileName)}`,
+                    name: fileName,
+                    url: `${process.env.BACKEND_URL}/pdf/file/${bucket}/${encodeURIComponent(fileName)}`,
                     poster: coverMap[baseName] || "null",
                 });
             }
