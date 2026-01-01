@@ -22,9 +22,13 @@ export class BackblazeController {
 
     // Endpoint proxy para servir el PDF
     @Get('file:fileName')
-    async getPdf(@Param('fileName') fileName: string, @Res() res: Response) {
+    async getPdf(
+        @Param('fileName') fileName: string,
+        @Param('bucket') bucket: string,
+        @Res() res: Response
+    ) {
         try {
-            const stream = await this.backblazeService.getFileStream(`normas/${decodeURIComponent(fileName)}`);
+            const stream = await this.backblazeService.getFileStream(`${bucket}/${decodeURIComponent(fileName)}`);
             res.setHeader('Content-Type', 'application/pdf');
             stream.pipe(res);
         } catch (error) {

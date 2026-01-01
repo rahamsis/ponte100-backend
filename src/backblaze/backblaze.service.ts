@@ -97,6 +97,8 @@ export class BackblazeService implements OnModuleInit {
                 }),
             ]);
 
+            const bucket = 'banco-preguntas';
+
             // 2. Creamos mapa de portadas con el nombre base
             const coverMap: Record<string, string> = {};
             for (const file of coverFiles.data.files) {
@@ -116,7 +118,7 @@ export class BackblazeService implements OnModuleInit {
                 // URL usando tu backend como proxy
                 pdfs.push({
                     name: file.fileName,
-                    url: `${process.env.BACKEND_URL}/pdf/file/${encodeURIComponent(file.fileName)}`,
+                    url: `${process.env.BACKEND_URL}/pdf/file/${bucket}/${encodeURIComponent(file.fileName)}`,
                     poster: coverMap[baseName] || "null",
                 });
             }
@@ -143,6 +145,8 @@ export class BackblazeService implements OnModuleInit {
                 }),
             ]);
 
+            const bucket = 'normas';
+
             // 2. Creamos mapa de portadas con el nombre base
             const coverMap: Record<string, string> = {};
             for (const file of coverFiles.data.files) {
@@ -162,7 +166,7 @@ export class BackblazeService implements OnModuleInit {
                 // URL usando tu backend como proxy
                 pdfs.push({
                     name: file.fileName,
-                    url: `${process.env.BACKEND_URL}/pdf/file/${encodeURIComponent(file.fileName)}`,
+                    url: `${process.env.BACKEND_URL}/pdf/file/${bucket}/${encodeURIComponent(file.fileName)}`,
                     poster: coverMap[baseName] || "null",
                 });
             }
