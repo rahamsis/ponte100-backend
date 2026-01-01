@@ -104,7 +104,7 @@ export class BackblazeService implements OnModuleInit {
                 if (!baseName) continue;
 
                 // URL usando tu backend como proxy
-                coverMap[baseName] = `http://localhost:3000/pdf/cover/${encodeURIComponent(baseName)}`;
+                coverMap[baseName] = `${process.env.BACKEND_URL}/pdf/cover/${encodeURIComponent(baseName)}`;
             }
 
             // 3. Generamos listado final de PDFs con su cover correspondiente
@@ -116,7 +116,7 @@ export class BackblazeService implements OnModuleInit {
                 // URL usando tu backend como proxy
                 pdfs.push({
                     name: file.fileName,
-                    url: `http://localhost:3000/pdf/file${encodeURIComponent(file.fileName)}`,
+                    url: `${process.env.BACKEND_URL}/pdf/file/${encodeURIComponent(file.fileName)}`,
                     poster: coverMap[baseName] || "null",
                 });
             }
@@ -150,7 +150,7 @@ export class BackblazeService implements OnModuleInit {
                 if (!baseName) continue;
 
                 // URL usando tu backend como proxy
-                coverMap[baseName] = `http://localhost:3000/pdf/cover/${encodeURIComponent(baseName)}`;
+                coverMap[baseName] = `${process.env.BACKEND_URL}/pdf/cover/${encodeURIComponent(baseName)}`;
             }
 
             // 3. Generamos listado final de PDFs con su cover correspondiente
@@ -162,7 +162,7 @@ export class BackblazeService implements OnModuleInit {
                 // URL usando tu backend como proxy
                 pdfs.push({
                     name: file.fileName,
-                    url: `http://localhost:3000/pdf/file/${encodeURIComponent(file.fileName)}`,
+                    url: `${process.env.BACKEND_URL}/pdf/file/${encodeURIComponent(file.fileName)}`,
                     poster: coverMap[baseName] || "null",
                 });
             }
