@@ -106,7 +106,7 @@ export class BackblazeService implements OnModuleInit {
                 if (!baseName) continue;
 
                 // URL usando tu backend como proxy
-                coverMap[baseName] = `${process.env.BACKEND_URL}/pdf/cover/${encodeURIComponent(baseName)}`;
+                coverMap[baseName] = `${process.env.BACKEND_URL}/pdf/cover/${encodeURIComponent(baseName)}.png`;
             }
 
             // 3. Generamos listado final de PDFs con su cover correspondiente
@@ -154,7 +154,7 @@ export class BackblazeService implements OnModuleInit {
                 if (!baseName) continue;
 
                 // URL usando tu backend como proxy
-                coverMap[baseName] = `${process.env.BACKEND_URL}/pdf/cover/${encodeURIComponent(baseName)}`;
+                coverMap[baseName] = `${process.env.BACKEND_URL}/pdf/cover/${encodeURIComponent(baseName)}.png`;
             }
 
             // 3. Generamos listado final de PDFs con su cover correspondiente

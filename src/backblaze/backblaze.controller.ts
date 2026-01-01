@@ -12,7 +12,7 @@ export class BackblazeController {
     @Get('cover/:coverName')
     async getCover(@Param('coverName') coverName: string, @Res() res: Response) {
         try {
-            const stream = await this.backblazeService.getFileStream(`covers/${decodeURIComponent(coverName)}.png`);
+            const stream = await this.backblazeService.getFileStream(`covers/${decodeURIComponent(coverName)}`);
             res.setHeader('Content-Type', 'image/png');
             stream.pipe(res);
         } catch (error) {
@@ -21,10 +21,10 @@ export class BackblazeController {
     }
 
     // Endpoint proxy para servir el PDF
-    @Get('file:fileName')
+    @Get('file/:bucket/:fileName')
     async getPdf(
-        @Param('fileName') fileName: string,
         @Param('bucket') bucket: string,
+        @Param('fileName') fileName: string,
         @Res() res: Response
     ) {
         try {
@@ -35,6 +35,7 @@ export class BackblazeController {
             res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: 'Error obteniendo PDF' });
         }
     }
+
 
     // Endpoints para listar archivos - endpoints tradicionales
     @Get('/videos')
