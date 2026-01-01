@@ -29,23 +29,59 @@ export class BackblazeService implements OnModuleInit {
     }
 
     // Stream de cualquier archivo del bucket
+    // async getFileStream(filePath: string): Promise<NodeJS.ReadableStream> {
+    //     try {
+    //         const auth = await this.b2.getDownloadAuthorization({
+    //             bucketId: this.bucketId,
+    //             fileNamePrefix: filePath,
+    //             validDurationInSeconds: 600,
+    //         });
+
+    //         const url = `${this.downloadUrl}/${filePath}?Authorization=${auth.data.authorizationToken}`;
+    //         const response = await fetch(url);
+
+    //         if (!response.ok) throw new Error('Error descargando archivo de B2');
+    //         if (!response.body) throw new Error('No se pudo obtener el stream del archivo');
+
+    //         return response.body as unknown as NodeJS.ReadableStream; // casteamos a NodeJS.ReadableStream
+    //     } catch (error) {
+    //         throw new InternalServerErrorException(error.message);
+    //     }
+    // }
     async getFileStream(filePath: string): Promise<NodeJS.ReadableStream> {
         try {
-            const auth = await this.b2.getDownloadAuthorization({
+            console.log('Buscando archivo:', filePath);
+
+            // Primero necesitamos obtener el fileId
+            const fileList = await this.b2.listFileNames({
                 bucketId: this.bucketId,
-                fileNamePrefix: filePath,
-                validDurationInSeconds: 600,
+                prefix: filePath,
+                maxFileCount: 1
             });
 
-            const url = `${this.downloadUrl}/${filePath}?Authorization=${auth.data.authorizationToken}`;
-            const response = await fetch(url);
+            if (!fileList.data.files || fileList.data.files.length === 0) {
+                throw new Error(`Archivo no encontrado: ${filePath}`);
+            }
 
-            if (!response.ok) throw new Error('Error descargando archivo de B2');
-            if (!response.body) throw new Error('No se pudo obtener el stream del archivo');
+            const fileInfo = fileList.data.files[0];
+            console.log('FileInfo encontrado:', fileInfo);
 
-            return response.body as unknown as NodeJS.ReadableStream; // casteamos a NodeJS.ReadableStream
+            // Ahora descargamos usando el fileId
+            const downloadResponse = await this.b2.downloadFileById({
+                fileId: fileInfo.fileId
+            });
+
+            // Crear un stream a partir de la respuesta
+            const { Readable } = await import('stream');
+            const stream = new Readable();
+            stream.push(downloadResponse.data);
+            stream.push(null); // Indica el final del stream
+
+            return stream;
+
         } catch (error) {
-            throw new InternalServerErrorException(error.message);
+            console.error('Error en getFileStream:', error);
+            throw new InternalServerErrorException(`Error obteniendo archivo: ${error.message}`);
         }
     }
 

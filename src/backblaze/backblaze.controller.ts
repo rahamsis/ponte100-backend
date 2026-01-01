@@ -43,6 +43,7 @@ export class BackblazeController {
             res.setHeader('Content-Disposition', `inline; filename="${fileName}"`);
             stream.pipe(res);
         } catch (error) {
+            console.error('Error obteniendo PDF:', error);
             res.status(HttpStatus.NOT_FOUND).json({ message: 'PDF no encontrado' });
         }
     }
