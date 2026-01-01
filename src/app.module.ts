@@ -7,8 +7,8 @@ import { AppService } from './app.service';
 import { PaymentService } from './payment/payment.service';
 import { DatabaseModule } from './database/database.module';
 import { PaymentModule } from './payment/payment.module';
-import { ZoomModule } from 'zoom/zoom.module';
-import { ZoomService } from 'zoom/zoom.service';
+import { ZoomModule } from 'src/zoom/zoom.module';
+import { ZoomService } from 'src/zoom/zoom.service';
 import { BackblazeModule } from './backblaze/backblaze.module';
 
 @Module({
