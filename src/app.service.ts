@@ -7,11 +7,15 @@ import {
 } from './dto/body.dto';
 import { v4 as uuidv4 } from 'uuid'
 import * as bcrypt from 'bcrypt';
+import { Util } from './util/util';
 
 @Injectable()
 export class AppService {
 
-  constructor(private readonly databaseService: DatabaseService) { }
+  constructor(
+    private readonly databaseService: DatabaseService,
+    private readonly util: Util
+  ) { }
 
   async getLogin(body: BodyDto): Promise<{ user: any }> {
 
@@ -33,11 +37,13 @@ export class AppService {
     }
 
     const menu = await this.databaseService.executeQuery(`SELECT m.idMenu, m.nombre, m.ruta, m.otrasRutas,
-      pm.estado, m.icon 
-      FROM permisomenu as pm 
+      pm.estado, m.icon, sm.idSubmenu, sm.nombre AS nombreSubmenu, sm.ruta AS rutaSubmenu, sm.icon AS iconSubmenu
+      FROM perfilmenu as pm 
       INNER JOIN perfil as p on p.idPerfil = pm.idPerfil
       INNER JOIN menu as m on m.idMenu = pm.idMenu
-      WHERE p.idPerfil = ? order by m.idMenu`, [user[0].idPerfil]);
+      LEFT JOIN submenu as sm on sm.idMenu = m.idMenu
+      WHERE p.idPerfil = ?
+      ORDER BY m.orden, sm.orden`, [user[0].idPerfil]);
 
     return {
       user: {
@@ -45,31 +51,6 @@ export class AppService {
         menu
       }
     };
-  }
-
-  async createAccount(body: BodyDto): Promise<{ message: string }> {
-    const email = body.email.toLowerCase().trim();
-    const password = body.password.trim();
-
-    const user = await this.databaseService.executeQuery(`SELECT userId FROM users WHERE email = ?`, [
-      email,
-    ]);
-
-    if (user.length > 0) {
-      return { message: "El email ya está en uso." };
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 10)
-
-    await this.databaseService.executeQuery(`INSERT INTO users (userId, username, email, password, fechaCreacion)
-        VALUES (?,?,?,?,NOW())`, [
-      uuidv4(),
-      body.username,
-      email,
-      hashedPassword
-    ]);
-
-    return { message: "Cuenta creada exitosamente" }
   }
 
   async createSession(body: SessionDto): Promise<{ sessionId: string }> {
@@ -534,8 +515,7 @@ export class AppService {
     return user || null;
   }
 
-  async updateProfileuser(body: UpdateProfileUserDto): Promise<any> {
-
+  async updateProfileuser(body: UpdateProfileUserDto): Promise<{ ok: boolean; message?: string }> {
     const password = body.password?.trim();
     const hashedPassword = password ? await bcrypt.hash(password, 10) : null;
 
@@ -584,7 +564,7 @@ export class AppService {
 
     await this.databaseService.executeQuery(sql, updateValues);
 
-    return { message: "Usuario actualizado correctamente" };
+    return { ok: true, message: "Usuario actualizado correctamente" };
   }
 
   async gettalleresByUserId(userId: string): Promise<any> {
@@ -1010,4 +990,431 @@ export class AppService {
 
     return result || null;
   }
+
+  async getAllPerfiles(): Promise<any> {
+    const result = await this.databaseService.executeQuery(
+      `SELECT idPerfil, nombrePerfil, createdDate, updatedDate
+      FROM perfil`, []
+    );
+    return result || null;
+  }
+
+  async createPerfil(body: { nombrePerfil: string }): Promise<{ ok: boolean; message?: string }> {
+    const perfil = await this.databaseService.executeQuery(
+      `SELECT idPerfil FROM perfil WHERE LOWER(nombrePerfil) = ?`, [
+      body.nombrePerfil.toLowerCase(),
+    ]);
+
+    if (perfil.length > 0) {
+      return {
+        ok: false,
+        message: "El nombre de perfil ya está en uso."
+      };
+    }
+
+    const row = await this.databaseService.executeQuery(
+      `SELECT idPerfil FROM perfil ORDER BY idPerfil DESC limit 1;`, [
+      body.nombrePerfil,
+    ]);
+    const lastIdPerfil = row.length > 0 ? row[0].idPerfil : "PF0000";
+    const idPerfil = this.util.nextCode(lastIdPerfil);
+
+    const result = await this.databaseService.executeQuery(
+      `INSERT INTO perfil (idPerfil, nombrePerfil, createdDate, updatedDate)
+        VALUES (?, ?, NOW(), NOW())`,
+      [idPerfil, body.nombrePerfil]);
+    return { ok: result.affectedRows > 0 };
+  }
+
+  async updatePerfil(idPerfil: string, body: { nombrePerfil: string }): Promise<{ ok: boolean; message?: string }> {
+    const perfil = await this.databaseService.executeQuery(
+      `SELECT idPerfil FROM perfil WHERE LOWER(nombrePerfil) = ? ORDER BY idPerfil DESC limit 1;`, [
+      body.nombrePerfil.toLowerCase(),
+    ]);
+
+    if (idPerfil == "PF0001") {
+      return {
+        ok: false,
+        message: "No se puede editar el perfil, contacte con el administrador del sistema."
+      };
+    }
+
+
+    if (perfil.length > 0) {
+      return {
+        ok: false,
+        message: "El nombre de perfil ya está en uso."
+      };
+    }
+
+    const result = await this.databaseService.executeQuery(
+      `UPDATE perfil SET nombrePerfil = ?, updatedDate = NOW()
+        WHERE idPerfil = ?`,
+      [body.nombrePerfil, idPerfil]);
+    return { ok: result.affectedRows > 0 };
+  }
+
+  async deletePerfil(idPerfil: string): Promise<any> {
+
+    // 1️⃣ Verificar si el perfil existe
+    const perfil = await this.databaseService.executeQuery(
+      `SELECT nombrePerfil FROM perfil WHERE idPerfil = ?`,
+      [idPerfil]
+    )
+
+    if (perfil.length === 0) {
+      return {
+        ok: false,
+        message: "El perfil no existe",
+      }
+    }
+
+    // 2️⃣ No permitir eliminar Administrador
+    if (perfil[0].idPerfil === "PF0001") {
+      return {
+        ok: false,
+        message: "No se puede eliminar el Perfil Administrador",
+      }
+    }
+
+    // 3️⃣ Verificar relación con permisos
+    const hasRelation = await this.databaseService.executeQuery(
+      `SELECT 1 FROM perfilmenu WHERE idPerfil = ? LIMIT 1`,
+      [idPerfil]
+    )
+
+    if (hasRelation.length > 0) {
+      return {
+        ok: false,
+        message: "No se puede eliminar el Perfil, tiene permisos asignados.",
+      }
+    }
+
+    // 4️⃣ Eliminar
+    const result = await this.databaseService.executeQuery(
+      `DELETE FROM perfil WHERE idPerfil = ?`,
+      [idPerfil]
+    )
+
+    return {
+      ok: result.affectedRows > 0,
+    }
+  }
+
+  async deleteUsuario(idUsuario: string): Promise<{ ok: boolean; message?: string }> {
+
+    // 1️⃣ Verificar si el usuario existe
+    const usuario = await this.databaseService.executeQuery(
+      `SELECT nombre, idPerfil FROM users WHERE userId = ?`,
+      [idUsuario]
+    )
+
+    if (usuario.length === 0) {
+      return {
+        ok: false,
+        message: "El usuario no existe",
+      }
+    }
+
+    // 2️⃣ No permitir eliminar Administrador
+    if (usuario[0].idPerfil === "PF0001") {
+      return {
+        ok: false,
+        message: "No se puede eliminar el usuario Administrador",
+      }
+    }
+
+    // 3️⃣ Transacción
+    const connection = await this.databaseService.getConnection()
+
+    try {
+      await connection.beginTransaction()
+
+      await this.databaseService.executeQuery(
+        `DELETE FROM preguntasfallidas WHERE idUsuario = ?`,
+        [idUsuario]
+      )
+
+      await this.databaseService.executeQuery(
+        `DELETE FROM progreso WHERE idUsuario = ?`,
+        [idUsuario]
+      )
+
+      await this.databaseService.executeQuery(
+        `DELETE FROM sessions WHERE userId = ?`,
+        [idUsuario]
+      )
+
+      await this.databaseService.executeQuery(
+        `DELETE FROM usuariotalleres WHERE idUsuario = ?`,
+        [idUsuario]
+      )
+
+      // 4️⃣ Eliminar
+      const result = await this.databaseService.executeQuery(
+        `DELETE FROM users WHERE userId = ?`,
+        [idUsuario]
+      )
+
+      await connection.commit()
+
+      return {
+        ok: result.affectedRows > 0,
+      }
+    } catch (error) {
+      await connection.rollback()
+      return {
+        ok: false,
+        message: error.message || 'Error al eliminar el usuario',
+      }
+    } finally {
+      connection.release()
+    }
+  }
+
+  async getTreeByPerfil(idPerfil: string) {
+
+    const menuCompleto = await this.databaseService.executeQuery(
+      `SELECT m.idMenu, m.nombre AS nombreMenu, m.icon, m.ruta, m.otrasRutas, sm.idSubMenu, 
+       sm.nombre AS nombreSubMenu, sm.icon AS iconSubMenu, sm.ruta AS rutaSubmenu
+       FROM menu m
+       LEFT JOIN submenu sm ON sm.idMenu = m.idMenu
+       ORDER BY m.orden, sm.orden;`
+    );
+
+    const permisosCompletos = await this.databaseService.executeQuery(
+      `SELECT idPermiso, idMenu, idSubMenu, nombre, descripcion
+       FROM permisos
+       WHERE estado = 1;`
+    )
+
+    const perfilPermiso = await this.databaseService.executeQuery(
+      `SELECT idPermiso, estado AS estadoPermiso
+       FROM perfilpermiso
+       WHERE idPerfil = ?;`,
+      [idPerfil]
+    );
+
+    const perfilSubmenu = await this.databaseService.executeQuery(
+      `SELECT idSubMenu, estado AS estadoSubMenu
+       FROM perfilsubmenu
+       WHERE idPerfil = ?;`,
+      [idPerfil]
+    );
+
+    const perfilMenu = await this.databaseService.executeQuery(
+      `SELECT idMenu, estado AS estadoMenu
+       FROM perfilmenu
+       WHERE idPerfil = ?;`,
+      [idPerfil]
+    );
+
+    return this.util.buildTreeToAcces(menuCompleto, permisosCompletos, perfilMenu, perfilSubmenu, perfilPermiso)
+  }
+
+  // async updateAccesos(idPerfil: string, body: { accesos: Record<string, boolean> }): Promise<{ ok: boolean; message?: string }> {
+  //   const { accesos } = body;
+
+  //   for (const [id, checked] of Object.entries(accesos)) {
+  //     const estado = checked ? 1 : 0;
+
+  //     if (id.startsWith('MN')) {
+  //       const register = await this.databaseService.executeQuery(
+  //         `SELECT 1 FROM perfilmenu WHERE idPerfil = ? AND idMenu = ?`,
+  //         [idPerfil, id]
+  //       )
+
+  //       if (register.length > 0) {
+  //         await this.databaseService.executeQuery(
+  //           `UPDATE perfilmenu SET estado = ? WHERE idPerfil = ? AND idMenu = ?`,
+  //           [estado, idPerfil, id]
+  //         );
+  //       } else {
+  //         await this.databaseService.executeQuery(
+  //           `INSERT INTO perfilmenu (idPerfil, idMenu, estado)
+  //            VALUES (?, ?, ?)`,
+  //           [idPerfil, id, estado]
+  //         );
+  //       }
+
+  //     } else if (id.startsWith('SM')) {
+  //       const register = await this.databaseService.executeQuery(
+  //         `SELECT 1 FROM perfilsubmenu WHERE idPerfil = ? AND idSubmenu = ?`,
+  //         [idPerfil, id]
+  //       )
+
+  //       const idMenu = await this.databaseService.executeQuery(
+  //         `SELECT idMenu FROM submenu WHERE idSubMenu = ?`,
+  //         [id]
+  //       )
+
+  //       if (register.length > 0) {
+  //         await this.databaseService.executeQuery(
+  //           `UPDATE perfilsubmenu SET estado = ? WHERE idPerfil = ? AND idSubMenu = ?`,
+  //           [estado, idPerfil, id]
+  //         );
+  //       } else {
+  //         await this.databaseService.executeQuery(
+  //           `INSERT INTO perfilsubmenu (idMenu, idSubmenu, idPerfil, estado)
+  //            VALUES (?, ?, ?, ?)`,
+  //           [idMenu, id, idPerfil, estado]
+  //         );
+  //       }
+  //     } else if (id.startsWith('PM')) {
+  //       const register = await this.databaseService.executeQuery(
+  //         `SELECT 1 FROM perfilpermiso WHERE idPerfil = ? AND idPermiso = ?`,
+  //         [idPerfil, id]
+  //       )
+
+  //       const ids = await this.databaseService.executeQuery(
+  //         `SELECT idMenu, idSubMenu FROM permisos WHERE idPermiso = ?`,
+  //         [id]
+  //       )
+
+  //       if (register.length > 0) {
+  //         await this.databaseService.executeQuery(
+  //           `UPDATE perfilpermiso SET estado = ? WHERE idPerfil = ? AND idPermiso = ?`,
+  //           [estado, idPerfil, id]
+  //         );
+  //       } else {
+  //         await this.databaseService.executeQuery(
+  //           `INSERT INTO perfilpermiso (idPerfil, idMenu, idSubMenu, idPermiso, estado)
+  //            VALUES (?, ?, ?, ?, ?)`,
+  //           [idPerfil, ids.idMenu, ids.idSubMenu, id, estado]
+  //         );
+  //       }
+  //     }
+  //   }
+
+  //   return { ok: true };
+  // }
+
+  async updateAccesos(
+    idPerfil: string,
+    body: { accesos: Record<string, boolean> }
+  ): Promise<{ ok: boolean; message?: string }> {
+
+    const { accesos } = body;
+
+    const conn = await this.databaseService.getConnection();
+
+    try {
+      await conn.beginTransaction();
+
+      /* ================= CARGAR DATA EXISTENTE ================= */
+
+      const perfilMenu = await this.databaseService.executeQuery(
+        `SELECT idMenu, estado FROM perfilmenu WHERE idPerfil = ?`,
+        [idPerfil]
+      );
+
+      const perfilSubmenu = await this.databaseService.executeQuery(
+        `SELECT idSubMenu, estado FROM perfilsubmenu WHERE idPerfil = ?`,
+        [idPerfil]
+      );
+
+      const perfilPermiso = await this.databaseService.executeQuery(
+        `SELECT idPermiso, estado FROM perfilpermiso WHERE idPerfil = ?`,
+        [idPerfil]
+      );
+
+      const permisos = await this.databaseService.executeQuery(
+        `SELECT idPermiso, idMenu, idSubMenu FROM permisos`
+      ) as PermisoInfo[];
+
+      /* ================= MAPAS EN MEMORIA ================= */
+
+      const menuMap = new Map(perfilMenu.map(m => [m.idMenu, m.estado]));
+      const subMenuMap = new Map(perfilSubmenu.map(s => [s.idSubMenu, s.estado]));
+      const permisoMap = new Map(perfilPermiso.map(p => [p.idPermiso, p.estado]));
+
+      const permisoInfoMap = new Map<string, PermisoInfo>(
+        permisos.map(p => [p.idPermiso, p])
+      );
+
+      /* ================= PROCESAR ACCESOS ================= */
+
+      for (const [id, checked] of Object.entries(accesos)) {
+        const estado = checked ? 1 : 0;
+
+        /* ---------- MENU ---------- */
+        if (id.startsWith('MN')) {
+          if (menuMap.has(id)) {
+            if (menuMap.get(id) !== estado) {
+              await conn.query(
+                `UPDATE perfilmenu SET estado = ? WHERE idPerfil = ? AND idMenu = ?`,
+                [estado, idPerfil, id]
+              );
+            }
+          } else {
+            await conn.query(
+              `INSERT INTO perfilmenu (idPerfil, idMenu, estado)
+             VALUES (?, ?, ?)`,
+              [idPerfil, id, estado]
+            );
+          }
+        }
+
+        /* ---------- SUBMENU ---------- */
+        else if (id.startsWith('SM')) {
+          if (subMenuMap.has(id)) {
+            if (subMenuMap.get(id) !== estado) {
+              await conn.query(
+                `UPDATE perfilsubmenu SET estado = ? WHERE idPerfil = ? AND idSubMenu = ?`,
+                [estado, idPerfil, id]
+              );
+            }
+          } else {
+            const [row] = await conn.query(
+              `SELECT idMenu FROM submenu WHERE idSubMenu = ?`,
+              [id]
+            );
+
+            if (!row) continue;
+
+            await conn.query(
+              `INSERT INTO perfilsubmenu (idMenu, idSubMenu, idPerfil, estado)
+             VALUES (?, ?, ?, ?)`,
+              [row[0].idMenu, id, idPerfil, estado]
+            );
+          }
+        }
+
+        /* ---------- PERMISO ---------- */
+        else if (id.startsWith('PM')) {
+          const info = permisoInfoMap.get(id);
+          if (!info) continue;
+
+          if (permisoMap.has(id)) {
+            if (permisoMap.get(id) !== estado) {
+              await conn.query(
+                `UPDATE perfilpermiso
+               SET estado = ?
+               WHERE idPerfil = ? AND idPermiso = ?`,
+                [estado, idPerfil, id]
+              );
+            }
+          } else {
+            await conn.query(
+              `INSERT INTO perfilpermiso
+             (idPerfil, idMenu, idSubMenu, idPermiso, estado)
+             VALUES (?, ?, ?, ?, ?)`,
+              [idPerfil, info.idMenu, info.idSubMenu, id, estado]
+            );
+          }
+        }
+      }
+
+      await conn.commit();
+      return { ok: true };
+
+    } catch (error) {
+      await conn.rollback();
+      console.error(error);
+      return { ok: false, message: 'Error al guardar accesos' };
+    } finally {
+      conn.release();
+    }
+  }
+
 }

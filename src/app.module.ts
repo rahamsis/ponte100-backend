@@ -10,6 +10,7 @@ import { PaymentModule } from './payment/payment.module';
 import { ZoomModule } from 'src/zoom/zoom.module';
 import { ZoomService } from 'src/zoom/zoom.service';
 import { BackblazeModule } from './backblaze/backblaze.module';
+import { Util } from './util/util';
 
 @Module({
   imports: [
@@ -21,6 +22,6 @@ import { BackblazeModule } from './backblaze/backblaze.module';
     ZoomModule
   ],
   controllers: [AppController, CloudinaryController],
-  providers: [AppService, PaymentService, ZoomService],
+  providers: [AppService, PaymentService, ZoomService, Util],
 })
 export class AppModule {}

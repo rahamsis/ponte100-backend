@@ -27,4 +27,8 @@ export class DatabaseService {
       throw new Error(`Error ejecutando la consulta: ${error.message}`);
     }
   }
+
+  async getConnection() {
+    return this.pool.getConnection();
+  }
 }

@@ -22,6 +22,7 @@ export class BackblazeController {
                     : 'application/octet-stream';
 
             res.setHeader('Content-Type', contentType);
+            res.setHeader('Accept-Ranges', 'bytes');
             if (stream instanceof StreamableFile) {
                 (stream as StreamableFile).getStream().pipe(res);
             } else if (typeof (stream as any)?.pipe === 'function') {
@@ -47,6 +48,7 @@ export class BackblazeController {
             const stream = await this.backblazeService.getFileStream(fullPath);
             res.setHeader('Content-Type', 'application/pdf');
             res.setHeader('Content-Disposition', `inline; filename="${fileName}"`);
+            res.setHeader('Accept-Ranges', 'bytes');
             stream.pipe(res);
         } catch (error) {
             console.error('Error obteniendo PDF:', error);

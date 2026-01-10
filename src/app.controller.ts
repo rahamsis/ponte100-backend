@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpStatus, Post, Put, Query, Res } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpStatus, Param, Post, Put, Query, Res } from '@nestjs/common';
 import { AppService } from './app.service';
 import { ApiTags } from '@nestjs/swagger';
 import {
@@ -22,20 +22,6 @@ export class AppController {
   ) {
     try {
       const data = await this.appService.getLogin(body);
-
-      return res.status(HttpStatus.OK).json(data);
-    } catch (error) {
-      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: error.message });
-    }
-  }
-
-  @Post('backendApi/create-account')
-  async createAccount(
-    @Res() res: Response,
-    @Body() body: BodyDto,
-  ) {
-    try {
-      const data = await this.appService.createAccount(body)
 
       return res.status(HttpStatus.OK).json(data);
     } catch (error) {
@@ -591,5 +577,54 @@ export class AppController {
     } catch (error) {
       res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: error.message });
     }
+  }
+
+  @Get('/backendApi/perfiles')
+  async getAllPerfiles() {
+    return await this.appService.getAllPerfiles();
+  }
+
+  @Post('/backendApi/create-perfil')
+  async createPerfil(
+    @Body() body: { nombrePerfil: string },
+  ) {
+    return await this.appService.createPerfil(body);
+  }
+
+  @Put('/backendApi/update-perfil/:idPerfil')
+  async updatePerfil(
+    @Param('idPerfil') idPerfil: string,
+    @Body() body: { nombrePerfil: string },
+  ) {
+    return this.appService.updatePerfil(idPerfil, body);
+  }
+
+  @Delete('/backendApi/delete-perfil/:idPerfil')
+  async deletePerfil(
+    @Param('idPerfil') idPerfil: string,
+  ) {
+    return this.appService.deletePerfil(idPerfil);
+  }
+
+  @Delete('/backendApi/delete-usuario/:idUsuario')
+  async deleteUsuario(
+    @Param('idUsuario') idUsuario: string,
+  ) {
+    return this.appService.deleteUsuario(idUsuario);
+  }
+
+  @Get('/backendApi/accesos/:idPerfil')
+  async getAccesos(
+    @Param('idPerfil') idPerfil: string
+  ) {
+    return this.appService.getTreeByPerfil(idPerfil);
+  }
+
+  @Put('/backendApi/guardar-accesos/:idPerfil')
+  async updateAccesos(
+    @Param('idPerfil') idPerfil: string,
+    @Body() body: { accesos: Record<string, boolean> },
+  ) {
+    return this.appService.updateAccesos(idPerfil, body);
   }
 }
