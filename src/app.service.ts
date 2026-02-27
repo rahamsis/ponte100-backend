@@ -20,7 +20,7 @@ export class AppService {
   async getLogin(body: BodyDto): Promise<{ user: any }> {
 
     const user = await this.databaseService.executeQuery(`SELECT u.userId, u.username, u.email, u.cip, 
-      u.password, u. dni, u.verified, s.userIp, s.userDevice, u.profile, u.welcome, u.idPerfil
+      u.password, u.dni, u.verified, s.userIp, s.userDevice, u.profile, u.welcome, u.idPerfil
       FROM users u 
       LEFT JOIN sessions s ON s.userId = u.userId 
       WHERE u.email=?`, [
@@ -841,7 +841,7 @@ export class AppService {
       `SELECT * FROM users WHERE email = ?`,
       [body.email]);
 
-    if (existingRecords.length > 0) {
+    if (existingRecords.length > 0 ) {
       // return { message: 'existe usuario registrado con correo: ' + body.email };
       throw new Error('existe usuario registrado con correo: ' + body.email);
     } else {
@@ -852,7 +852,7 @@ export class AppService {
       const result = await this.databaseService.executeQuery(
         `INSERT INTO users (userId, nombre, apellidos, genero, idGrado, email, telefono, password,
         cip, dni, verified, username, welcome, fechaCreacion, fechaActualizacion, idPerfil)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, 1, NOW(), NOW(), 'PF0003')`,
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, 1, NOW(), NOW(), ?)`,
         [idUsuario,
           body.nombre,
           body.apellidos,
@@ -863,7 +863,8 @@ export class AppService {
           passwordHashed,
           body.cip,
           body.dni,
-          body.username]
+          body.username,
+          body.idPerfil]
       );
 
       return { ok: true };

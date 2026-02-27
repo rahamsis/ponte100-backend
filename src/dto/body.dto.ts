@@ -115,5 +115,6 @@ export class CrudUsuario {
   idGrado: string;
   genero: string;
   username: string;
+  idPerfil: string;
   password: string;
 }
