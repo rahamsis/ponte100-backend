@@ -852,7 +852,7 @@ export class AppService {
       const result = await this.databaseService.executeQuery(
         `INSERT INTO users (userId, nombre, apellidos, genero, idGrado, email, telefono, password,
         cip, dni, verified, username, welcome, fechaCreacion, fechaActualizacion, idPerfil)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, 1, NOW(), NOW(), ?)`,
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, 0, NOW(), NOW(), ?)`,
         [idUsuario,
           body.nombre,
           body.apellidos,
